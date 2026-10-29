@@ -1,0 +1,426 @@
+.counter {
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.3s;
+  margin-bottom: 24px;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.hero {
+  position: relative;
+
+  .base,
+  .framework,
+  .vite {
+    inset-inline: 0;
+    margin: 0 auto;
+  }
+
+  .base {
+    width: 170px;
+    position: relative;
+    z-index: 0;
+  }
+
+  .framework,
+  .vite {
+    position: absolute;
+  }
+
+  .framework {
+    z-index: 1;
+    top: 34px;
+    height: 28px;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
+      scale(1.4);
+  }
+
+  .vite {
+    z-index: 0;
+    top: 107px;
+    height: 26px;
+    width: auto;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
+      scale(0.8);
+  }
+}
+
+#center {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  place-content: center;
+  place-items: center;
+  flex-grow: 1;
+
+  @media (max-width: 1024px) {
+    padding: 32px 20px 24px;
+    gap: 18px;
+  }
+}
+
+#next-steps {
+  display: flex;
+  border-top: 1px solid var(--border);
+  text-align: left;
+
+  & > div {
+    flex: 1 1 0;
+    padding: 32px;
+    @media (max-width: 1024px) {
+      padding: 24px 20px;
+    }
+  }
+
+  .icon {
+    margin-bottom: 16px;
+    width: 22px;
+    height: 22px;
+  }
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+#docs {
+  border-right: 1px solid var(--border);
+
+  @media (max-width: 1024px) {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+#next-steps ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  margin: 32px 0 0;
+
+  .logo {
+    height: 18px;
+  }
+
+  a {
+    color: var(--text-h);
+    font-size: 16px;
+    border-radius: 6px;
+    background: var(--social-bg);
+    display: flex;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+
+    &:hover {
+      box-shadow: var(--shadow);
+    }
+    .button-icon {
+      height: 18px;
+      width: 18px;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    li {
+      flex: 1 1 calc(50% - 8px);
+    }
+
+    a {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+  }
+}
+
+#spacer {
+  height: 88px;
+  border-top: 1px solid var(--border);
+  @media (max-width: 1024px) {
+    height: 48px;
+  }
+}
+
+.ticks {
+  position: relative;
+  width: 100%;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4.5px;
+    border: 5px solid transparent;
+  }
+
+  &::before {
+    left: 0;
+    border-left-color: var(--border);
+  }
+  &::after {
+    right: 0;
+    border-right-color: var(--border);
+  }
+}
+
+
+/* REGISTRO DE ENTRADAS DE INVENTARIO */
+
+.inventory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.inventory-header h3 {
+  margin: 0;
+}
+
+.inventory-header .btn-primary {
+  white-space: nowrap;
+}
+
+/* Formulario para registrar un nuevo lote */
+.panel > .edit-product-form {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  border-top: 1px solid #eeeeee;
+}
+
+.panel > .edit-product-form .edit-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel > .edit-product-form .edit-form-field label {
+  font-weight: 600;
+}
+
+.panel > .edit-product-form .edit-form-field input,
+.panel > .edit-product-form .edit-form-field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #d8dce2;
+  border-radius: 8px;
+  background: #ffffff;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.panel > .edit-product-form .edit-form-field input:focus,
+.panel > .edit-product-form .edit-form-field select:focus {
+  outline: none;
+  border-color: #b4533c;
+  box-shadow: 0 0 0 3px rgba(180, 83, 60, 0.12);
+}
+
+.panel > .edit-product-form .edit-form-field small {
+  color: #777777;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.panel > .edit-product-form .edit-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .panel > .edit-product-form {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .panel > .edit-product-form .edit-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .panel > .edit-product-form .edit-form-actions button {
+    width: 100%;
+  }
+}
+
+
+/* REGISTRO DE ENTRADAS DE INVENTARIO */
+
+.inventory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.inventory-header h3 {
+  margin: 0;
+}
+
+.inventory-header .btn-primary {
+  white-space: nowrap;
+}
+
+/* Formulario para registrar un nuevo lote */
+.panel > .edit-product-form {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  border-top: 1px solid #eeeeee;
+}
+
+.panel > .edit-product-form .edit-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel > .edit-product-form .edit-form-field label {
+  font-weight: 600;
+}
+
+.panel > .edit-product-form .edit-form-field input,
+.panel > .edit-product-form .edit-form-field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #d8dce2;
+  border-radius: 8px;
+  background: #ffffff;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.panel > .edit-product-form .edit-form-field input:focus,
+.panel > .edit-product-form .edit-form-field select:focus {
+  outline: none;
+  border-color: #b4533c;
+  box-shadow: 0 0 0 3px rgba(180, 83, 60, 0.12);
+}
+
+.panel > .edit-product-form .edit-form-field small {
+  color: #777777;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.panel > .edit-product-form .edit-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .panel > .edit-product-form {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .panel > .edit-product-form .edit-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .panel > .edit-product-form .edit-form-actions button {
+    width: 100%;
+  }
+}
+
+/* Encabezado compacto para registrar productos */
+.product-form-heading {
+  padding: 0 0 18px;
+  margin-bottom: 22px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #e8d9cd;
+  border-radius: 0;
+}
+
+.product-form-heading-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.product-form-heading-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  color: #914629;
+  background: #f3e3d7;
+  border-radius: 12px;
+}
+
+.product-form-heading h2 {
+  margin: 0;
+  color: #543222;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.product-form-heading p {
+  margin: 4px 0 0;
+  color: #8d7b6b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Ocultar la línea adicional del encabezado */
+.product-form-heading-divider {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .product-form-heading {
+    padding-bottom: 15px;
+    margin-bottom: 18px;
+  }
+
+  .product-form-heading-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .product-form-heading h2 {
+    font-size: 18px;
+  }
+
+  .product-form-heading p {
+    font-size: 12px;
+  }
+}
