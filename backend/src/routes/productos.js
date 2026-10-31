@@ -4,8 +4,8 @@ const router = express.Router()
 const { conectarBD, sql } = require('../config/database')
 
 // =============================================
-// CONSULTAR PRODUCTOS ACTIVOS
-// Incluye las fechas del lote más reciente.
+// CONSULTAR PRODUCTOS ACTIVOS PARA VENTAS
+// Solo muestra las unidades de lotes vigentes.
 // =============================================
 router.get('/', async (req, res) => {
   try {
@@ -17,26 +17,24 @@ router.get('/', async (req, res) => {
         P.NombreProducto,
         P.Descripcion,
         P.Precio,
-        I.Existencia,
-        I.StockMinimo,
-        L.IdLote,
-        L.CantidadDisponible AS CantidadLote,
-        CONVERT(VARCHAR(10), L.FechaIngreso, 23) AS FechaIngreso,
-        CONVERT(VARCHAR(10), L.FechaVencimiento, 23) AS FechaVencimiento
+        SUM(L.CantidadDisponible) AS Existencia,
+        I.StockMinimo
       FROM dbo.Productos AS P
+      INNER JOIN dbo.LotesInventario AS L
+        ON P.IdProducto = L.IdProducto
       LEFT JOIN dbo.Inventario AS I
         ON P.IdProducto = I.IdProducto
-      OUTER APPLY (
-        SELECT TOP 1
-          LI.IdLote,
-          LI.CantidadDisponible,
-          LI.FechaIngreso,
-          LI.FechaVencimiento
-        FROM dbo.LotesInventario AS LI
-        WHERE LI.IdProducto = P.IdProducto
-        ORDER BY LI.IdLote DESC
-      ) AS L
-      WHERE P.Estado = 1
+      WHERE
+        P.Estado = 1
+        AND L.CantidadDisponible > 0
+        AND L.FechaVencimiento >= CAST(GETDATE() AS DATE)
+      GROUP BY
+        P.IdProducto,
+        P.NombreProducto,
+        P.Descripcion,
+        P.Precio,
+        I.StockMinimo
+      HAVING SUM(L.CantidadDisponible) > 0
       ORDER BY P.NombreProducto;
     `)
 
@@ -44,6 +42,36 @@ router.get('/', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       mensaje: 'Error al consultar los productos',
+      error: error.message
+    })
+  }
+})
+
+// =============================================
+// CONSULTAR TODOS LOS PRODUCTOS ACTIVOS
+// Para el catálogo de entradas de inventario.
+// No importa si tienen lotes vencidos o agotados.
+// =============================================
+router.get('/catalogo', async (req, res) => {
+  try {
+    const pool = await conectarBD()
+
+    const resultado = await pool.request().query(`
+      SELECT
+        P.IdProducto,
+        P.NombreProducto,
+        P.Descripcion,
+        P.Precio,
+        P.Estado
+      FROM dbo.Productos AS P
+      WHERE P.Estado = 1
+      ORDER BY P.NombreProducto;
+    `)
+
+    res.json(resultado.recordset)
+  } catch (error) {
+    res.status(500).json({
+      mensaje: 'Error al consultar el catálogo de productos',
       error: error.message
     })
   }
@@ -364,11 +392,10 @@ router.patch('/:id/desactivar', async (req, res) => {
   }
 })
 
-
-/* =============================================
-   REGISTRAR UNA NUEVA ENTRADA DE INVENTARIO
-   Para un producto que ya existe.
-============================================= */
+// =============================================
+// REGISTRAR UNA NUEVA ENTRADA DE INVENTARIO
+// Para un producto que ya existe.
+// =============================================
 router.post('/lotes', async (req, res) => {
   const {
     IdProducto,
@@ -503,5 +530,5 @@ router.post('/lotes', async (req, res) => {
   }
 })
 
-
 module.exports = router
+

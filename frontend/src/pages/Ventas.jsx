@@ -1,8 +1,8 @@
-
+﻿
 import { useCallback, useEffect, useState } from "react";
 import "../style/Ventas.css";
 
-const API = "http://localhost:3000/api";
+const API = "/api";
 
 export default function Ventas({ onVentaRegistrada }) {
   const [productos, setProductos] = useState([]);
@@ -125,7 +125,7 @@ export default function Ventas({ onVentaRegistrada }) {
     setMensaje("");
 
     if (valor === "") {
-      setError("La cantidad no puede quedar vacía.");
+      setError("La cantidad no puede quedar vací­a.");
       return;
     }
 
@@ -168,7 +168,7 @@ export default function Ventas({ onVentaRegistrada }) {
   function limpiarVenta() {
     setCarrito([]);
     setError("");
-    setMensaje("Se limpió el detalle de la venta.");
+    setMensaje("Se limpia el detalle de la venta.");
   }
 
   const total = carrito.reduce((suma, item) => {
@@ -190,7 +190,7 @@ export default function Ventas({ onVentaRegistrada }) {
     setMensaje("");
 
     if (carrito.length === 0) {
-      setError("Agregá al menos un producto para registrar la venta.");
+      setError("Agrega al menos un producto para registrar la venta.");
       return;
     }
 
@@ -226,7 +226,7 @@ export default function Ventas({ onVentaRegistrada }) {
 
     if (!token) {
       setError(
-        "No se encontró el token de sesión. Cerrá sesión e iniciá sesión nuevamente."
+        "No se encontro el token de sesión. Cerra sesión e inicia sesión nuevamente."
       );
       return;
     }
@@ -281,13 +281,13 @@ export default function Ventas({ onVentaRegistrada }) {
           await onVentaRegistrada();
         } catch (actualizacionError) {
           console.error(
-            "La venta se registró, pero no se pudieron actualizar todos los datos visuales:",
+            "La venta se registro, pero no se pudieron actualizar todos los datos visuales:",
             actualizacionError
           );
         }
       }
     } catch (err) {
-      setError(err.message || "Ocurrió un error al registrar la venta.");
+      setError(err.message || "Ocurrio un error al registrar la venta.");
     } finally {
       setGuardando(false);
     }
@@ -298,7 +298,7 @@ export default function Ventas({ onVentaRegistrada }) {
       <header className="ventas-header">
         <div>
           <h1>Nueva venta</h1>
-          <p>Seleccioná los productos para registrar una venta.</p>
+          <p>Selecciona los productos para registrar una venta.</p>
         </div>
         <span className="ventas-etiqueta">Punto de venta</span>
       </header>
@@ -503,3 +503,4 @@ export default function Ventas({ onVentaRegistrada }) {
     </main>
   );
 }
+

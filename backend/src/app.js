@@ -1,6 +1,7 @@
 
 const express = require('express')
 const cors = require('cors')
+const path = require('path')
 require('dotenv').config()
 
 const app = express()
@@ -8,12 +9,9 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-app.get('/', (req, res) => {
-  res.json({
-    mensaje: 'Backend de Panadería Emmanuel funcionando correctamente'
-  })
-})
+const { conectarBD } = require('./config/database')
 
+// Estado del backend
 app.get('/api/estado', (req, res) => {
   res.json({
     estado: 'activo',
@@ -21,9 +19,7 @@ app.get('/api/estado', (req, res) => {
   })
 })
 
-
-const { conectarBD } = require('./config/database')
-
+// Prueba de conexión con la base de datos
 app.get('/api/prueba-db', async (req, res) => {
   try {
     const pool = await conectarBD()
@@ -46,12 +42,31 @@ app.get('/api/prueba-db', async (req, res) => {
   }
 })
 
+// Rutas de la API
 const productosRoutes = require('./routes/productos')
 app.use('/api/productos', productosRoutes)
+
 const authRoutes = require('./routes/auth.routes')
 app.use('/api/auth', authRoutes)
-const ventasRoutes = require('./routes/ventas');
-app.use('/api/ventas', ventasRoutes);
 
+const ventasRoutes = require('./routes/ventas')
+app.use('/api/ventas', ventasRoutes)
+
+// Archivos de React
+app.use(express.static(path.join(__dirname, '../public')))
+
+// Página principal
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'))
+})
+
+// Permite cargar las rutas de la interfaz React
+app.get(/.*/, (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next()
+  }
+
+  res.sendFile(path.join(__dirname, '../public/index.html'))
+})
 
 module.exports = app

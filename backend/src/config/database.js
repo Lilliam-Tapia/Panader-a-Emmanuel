@@ -1,26 +1,42 @@
 
-const sql = require('mssql/msnodesqlv8')
+require('dotenv').config();
+
+const sql = require('mssql');
+const { DefaultAzureCredential } = require('@azure/identity');
 
 const config = {
-  connectionString:
-    'Driver={ODBC Driver 18 for SQL Server};Server=LAPTOP-4N0KUFG6;Database=PanaderiaEmmanuel;Trusted_Connection=yes;TrustServerCertificate=yes;Encrypt=no;'
-}
+  server: 'sql-panaderia-emmanuel.database.windows.net',
+  database: 'Panaderiaemmanuel',
+  port: 1433,
+  options: {
+    encrypt: true,
+    trustServerCertificate: false
+  },
+  authentication: {
+    type: 'azure-active-directory-default',
+    options: {
+      credential: new DefaultAzureCredential()
+    }
+  }
+};
 
-let pool
+let pool;
 
 async function conectarBD() {
   try {
     if (pool && pool.connected) {
-      return pool
+      return pool;
     }
 
-    pool = await sql.connect(config)
-    console.log('Conexión a SQL Server establecida correctamente')
-    return pool
+    pool = await new sql.ConnectionPool(config).connect();
+
+    console.log('Conexión a Azure SQL establecida correctamente');
+
+    return pool;
   } catch (error) {
-    console.error('Error al conectar con SQL Server:', error.message)
-    throw error
+    console.error('Error al conectar con Azure SQL:', error.message);
+    throw error;
   }
 }
 
-module.exports = { sql, conectarBD }
+module.exports = { sql, conectarBD };

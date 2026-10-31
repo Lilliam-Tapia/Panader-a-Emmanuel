@@ -1,8 +1,8 @@
-
+﻿
 import { useState } from 'react'
 import '../style/Login.css'
 
-const API_URL = 'http://localhost:3000/api/auth/login'
+const API_URL = '/api/auth/login'
 
 export default function Login({ onLogin }) {
   const [nombreUsuario, setNombreUsuario] = useState('')
@@ -57,7 +57,7 @@ export default function Login({ onLogin }) {
       <section className="login-card">
         <div className="login-brand">
           <div className="login-logo">E</div>
-          <p className="login-eyebrow">PANADERÍA</p>
+          <p className="login-eyebrow">PANADERIA</p>
           <h1>EMMANUEL</h1>
           <p className="login-subtitle">Sistema de ventas y facturación</p>
         </div>
@@ -123,3 +123,4 @@ export default function Login({ onLogin }) {
     </main>
   )
 }
+

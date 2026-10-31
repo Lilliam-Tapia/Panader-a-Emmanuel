@@ -1,7 +1,6 @@
+﻿import { useMemo, useState } from 'react';
 
-import { useMemo, useState } from 'react';
-
-const API = 'http://localhost:3000/api/productos';
+const API = '/api/productos';
 
 function fechaActual() {
   const hoy = new Date();
@@ -221,6 +220,21 @@ export default function Inventario({
     setMostrarFormularioLote(true);
   }
 
+  function cancelarFormularioLote() {
+    if (guardandoLote) return;
+
+    setMostrarFormularioLote(false);
+    setErrorLote('');
+    setMensajeLote('');
+
+    setNuevoLote({
+      IdProducto: '',
+      Cantidad: '',
+      FechaIngreso: fechaActual(),
+      FechaVencimiento: '',
+    });
+  }
+
   async function registrarLote(e) {
     e.preventDefault();
 
@@ -236,7 +250,9 @@ export default function Inventario({
     }
 
     if (!Number.isInteger(cantidad) || cantidad <= 0) {
-      setErrorLote('La cantidad debe ser un número entero mayor que cero.');
+      setErrorLote(
+        'La cantidad debe ser un número entero mayor que cero.'
+      );
       return;
     }
 
@@ -267,21 +283,26 @@ export default function Inventario({
           IdProducto: idProducto,
           Cantidad: cantidad,
           FechaIngreso: nuevoLote.FechaIngreso,
-          FechaVencimiento: nuevoLote.FechaVencimiento || null,
+          FechaVencimiento:
+            nuevoLote.FechaVencimiento || null,
         }),
       });
 
-      const resultado = await respuesta.json().catch(() => ({}));
+      const resultado = await respuesta
+        .json()
+        .catch(() => ({}));
 
       if (!respuesta.ok) {
         throw new Error(
           resultado.mensaje ||
-          resultado.error ||
-          'No fue posible registrar la entrada de inventario.'
+            resultado.error ||
+            'No fue posible registrar la entrada de inventario.'
         );
       }
 
-      setMensajeLote('La entrada de inventario se registró correctamente.');
+      setMensajeLote(
+        'La entrada de inventario se registró correctamente.'
+      );
 
       setNuevoLote({
         IdProducto: '',
@@ -296,7 +317,7 @@ export default function Inventario({
     } catch (error) {
       setErrorLote(
         error.message ||
-        'Ocurrió un error al registrar la entrada de inventario.'
+          'Ocurrió un error al registrar la entrada de inventario.'
       );
     } finally {
       setGuardandoLote(false);
@@ -305,6 +326,8 @@ export default function Inventario({
 
   return (
     <section className="section-content">
+
+      {/* ENCABEZADO */}
       <div className="section-intro">
         <div>
           <h2>Control de inventario</h2>
@@ -315,61 +338,79 @@ export default function Inventario({
         </div>
       </div>
 
+      {/* ESTADÍSTICAS */}
       <div className="stats-grid">
+
         <div className="stat-card">
-          <span className="stat-label">Productos registrados</span>
+          <span className="stat-label">
+            Productos registrados
+          </span>
+
           <strong>{totalProductos}</strong>
+
           <span className="stat-description">
             Productos en el sistema
           </span>
         </div>
 
         <div className="stat-card">
-          <span className="stat-label">Unidades disponibles</span>
+          <span className="stat-label">
+            Unidades disponibles
+          </span>
+
           <strong>{totalUnidades}</strong>
+
           <span className="stat-description">
             Existencia total registrada
           </span>
         </div>
 
         <div className="stat-card">
-          <span className="stat-label">Stock bajo</span>
+          <span className="stat-label">
+            Stock bajo
+          </span>
+
           <strong>{stockBajo}</strong>
+
           <span className="stat-description">
             Productos en su mínimo o por debajo
           </span>
         </div>
 
         <div className="stat-card">
-          <span className="stat-label">Próximos a vencer</span>
+          <span className="stat-label">
+            Próximos a vencer
+          </span>
+
           <strong>{lotesPorVencer}</strong>
+
           <span className="stat-description">
             Lotes que vencen en los próximos 3 días
           </span>
         </div>
+
       </div>
 
+      {/* ========================================= */}
       {/* REGISTRAR ENTRADA DE INVENTARIO */}
+      {/* ========================================= */}
+
       <div className="panel">
+
         <div className="panel-header inventory-header">
           <div>
             <h3>Entradas de inventario</h3>
           </div>
 
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => {
-              if (mostrarFormularioLote) {
-                setMostrarFormularioLote(false);
-                setErrorLote('');
-              } else {
-                abrirFormularioLote();
-              }
-            }}
-          >
-            {mostrarFormularioLote ? 'Cancelar' : '+ Registrar entrada'}
-          </button>
+          {!mostrarFormularioLote && (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={abrirFormularioLote}
+            >
+              + Registrar entrada
+            </button>
+          )}
         </div>
 
         {mensajeLote && (
@@ -389,8 +430,13 @@ export default function Inventario({
             className="edit-product-form"
             onSubmit={registrarLote}
           >
+
+            {/* PRODUCTO */}
             <div className="edit-form-field">
-              <label htmlFor="lote-producto">Producto</label>
+
+              <label htmlFor="lote-producto">
+                Producto
+              </label>
 
               <select
                 id="lote-producto"
@@ -398,28 +444,36 @@ export default function Inventario({
                 value={nuevoLote.IdProducto}
                 onChange={cambiarCampoLote}
                 required
+                disabled={productos.length === 0}
               >
-                <option value="">Selecciona un producto</option>
+                <option value="">
+                  Selecciona un producto
+                </option>
 
-                {productos
-                  .filter(
-                    (producto) =>
-                      String(producto.Estado ?? 'Activo').toLowerCase() !==
-                      'inactivo'
-                  )
-                  .map((producto) => (
-                    <option
-                      key={producto.IdProducto}
-                      value={producto.IdProducto}
-                    >
-                      {producto.NombreProducto}
-                    </option>
-                  ))}
+                {productos.map((producto) => (
+                  <option
+                    key={producto.IdProducto}
+                    value={producto.IdProducto}
+                  >
+                    {producto.NombreProducto}
+                  </option>
+                ))}
               </select>
+
+              {productos.length === 0 && (
+                <small>
+                  No hay productos registrados.
+                </small>
+              )}
+
             </div>
 
+            {/* CANTIDAD */}
             <div className="edit-form-field">
-              <label htmlFor="lote-cantidad">Cantidad que ingresa</label>
+
+              <label htmlFor="lote-cantidad">
+                Cantidad que ingresa
+              </label>
 
               <input
                 id="lote-cantidad"
@@ -432,10 +486,15 @@ export default function Inventario({
                 placeholder="Ej. 50"
                 required
               />
+
             </div>
 
+            {/* FECHA DE INGRESO */}
             <div className="edit-form-field">
-              <label htmlFor="lote-fecha-ingreso">Fecha de ingreso</label>
+
+              <label htmlFor="lote-fecha-ingreso">
+                Fecha de ingreso
+              </label>
 
               <input
                 id="lote-fecha-ingreso"
@@ -445,9 +504,12 @@ export default function Inventario({
                 onChange={cambiarCampoLote}
                 required
               />
+
             </div>
 
+            {/* FECHA DE VENCIMIENTO */}
             <div className="edit-form-field">
+
               <label htmlFor="lote-fecha-vencimiento">
                 Fecha de vencimiento
               </label>
@@ -462,18 +524,19 @@ export default function Inventario({
               />
 
               <small>
-                Si el producto no tiene fecha de vencimiento, puedes dejarla vacía.
+                Si el producto no tiene fecha de vencimiento,
+                puedes dejarla vacía.
               </small>
+
             </div>
 
+            {/* BOTONES DEL FORMULARIO */}
             <div className="edit-form-actions">
+
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={() => {
-                  setMostrarFormularioLote(false);
-                  setErrorLote('');
-                }}
+                onClick={cancelarFormularioLote}
                 disabled={guardandoLote}
               >
                 Cancelar
@@ -482,20 +545,34 @@ export default function Inventario({
               <button
                 type="submit"
                 className="btn-primary"
-                disabled={guardandoLote}
+                disabled={
+                  guardandoLote ||
+                  productos.length === 0
+                }
               >
-                {guardandoLote ? 'Registrando...' : 'Guardar entrada'}
+                {guardandoLote
+                  ? 'Registrando...'
+                  : 'Guardar entrada'}
               </button>
+
             </div>
+
           </form>
         )}
+
       </div>
 
+      {/* ========================================= */}
       {/* EXISTENCIAS POR LOTE */}
+      {/* ========================================= */}
+
       <div className="panel">
+
         <div className="panel-header inventory-header">
+
           <div>
             <h3>Existencias por lote</h3>
+
             <p>
               Consulta las cantidades y fechas de vencimiento.
             </p>
@@ -507,9 +584,12 @@ export default function Inventario({
             placeholder="Buscar producto, lote o estado..."
             etiqueta="Buscar producto, lote o estado"
           />
+
         </div>
 
+        {/* LEYENDA */}
         <div className="status-legend">
+
           <span>
             <i className="status-dot legend-valid" />
             Vigente
@@ -529,10 +609,14 @@ export default function Inventario({
             <i className="status-dot legend-empty" />
             Agotado
           </span>
+
         </div>
 
+        {/* TABLA */}
         <div className="table-container">
+
           <table className="data-table">
+
             <thead>
               <tr>
                 <th>Lote</th>
@@ -548,137 +632,253 @@ export default function Inventario({
             </thead>
 
             <tbody>
+
               {cargando ? (
+
                 <tr>
-                  <td colSpan="9" className="empty-table">
+                  <td
+                    colSpan="9"
+                    className="empty-table"
+                  >
                     Cargando inventario...
                   </td>
                 </tr>
+
               ) : lotesFiltrados.length === 0 ? (
+
                 <tr>
-                  <td colSpan="9" className="empty-table">
+                  <td
+                    colSpan="9"
+                    className="empty-table"
+                  >
                     No se encontraron lotes registrados.
                   </td>
                 </tr>
+
               ) : (
+
                 lotesFiltrados.map((lote, indice) => {
+
                   const estado = estadoLote(lote);
 
                   return (
-                    <tr key={lote.IdLote ?? indice}>
-                      <td>{lote.IdLote ?? '—'}</td>
-                      <td>{lote.NombreProducto || '—'}</td>
-                      <td>{formatoPrecio(lote.Precio)}</td>
-                      <td>{lote.CantidadDisponible ?? 0}</td>
-                      <td>{lote.Existencia ?? 0}</td>
-                      <td>{lote.StockMinimo ?? 0}</td>
-                      <td>{formatoFecha(lote.FechaIngreso)}</td>
-                      <td>{formatoFecha(lote.FechaVencimiento)}</td>
+                    <tr
+                      key={lote.IdLote ?? indice}
+                    >
+
                       <td>
-                        <span className={claseEstado(estado)}>
+                        {lote.IdLote ?? '—'}
+                      </td>
+
+                      <td>
+                        {lote.NombreProducto || '—'}
+                      </td>
+
+                      <td>
+                        {formatoPrecio(lote.Precio)}
+                      </td>
+
+                      <td>
+                        {lote.CantidadDisponible ?? 0}
+                      </td>
+
+                      <td>
+                        {lote.Existencia ?? 0}
+                      </td>
+
+                      <td>
+                        {lote.StockMinimo ?? 0}
+                      </td>
+
+                      <td>
+                        {formatoFecha(lote.FechaIngreso)}
+                      </td>
+
+                      <td>
+                        {formatoFecha(
+                          lote.FechaVencimiento
+                        )}
+                      </td>
+
+                      <td>
+                        <span
+                          className={claseEstado(estado)}
+                        >
                           {estado}
                         </span>
                       </td>
+
                     </tr>
                   );
                 })
+
               )}
+
             </tbody>
+
           </table>
+
         </div>
 
         {lotesVencidos > 0 && (
           <div className="alert alert-error">
+
             <span>
               Atención: hay {lotesVencidos} lote(s) vencido(s).
               Revisa su estado antes de utilizarlos o venderlos.
             </span>
+
           </div>
         )}
+
       </div>
 
+      {/* ========================================= */}
       {/* ADMINISTRAR PRODUCTOS */}
+      {/* ========================================= */}
+
       <div className="panel">
+
         <div className="panel-header">
+
           <div>
+
             <h3>Administrar productos</h3>
+
             <p>
-               {esAdministrador
-              ? 'Consulta, edita o desactiva productos.'
-              : 'Consulta los productos registrados y sus precios.'}
+              {esAdministrador
+                ? 'Consulta, edita o desactiva productos.'
+                : 'Consulta los productos registrados y sus precios.'}
             </p>
+
           </div>
+
         </div>
 
         <div className="product-search">
+
           <Buscador
             busqueda={busquedaProductos}
             setBusqueda={setBusquedaProductos}
             placeholder="Buscar producto por nombre o descripción..."
             etiqueta="Buscar producto por nombre o descripción"
           />
+
         </div>
 
         <div className="table-container">
+
           <table className="data-table">
+
             <thead>
+
               <tr>
                 <th>Producto</th>
                 <th>Descripción</th>
                 <th>Precio</th>
-                {esAdministrador && <th>Acciones</th>}
+
+                {esAdministrador && (
+                  <th>Acciones</th>
+                )}
+
               </tr>
+
             </thead>
 
             <tbody>
+
               {productosFiltrados.length === 0 ? (
+
                 <tr>
-                  <td colSpan="6" className="empty-table">
+
+                  <td
+                    colSpan={
+                      esAdministrador ? 4 : 3
+                    }
+                    className="empty-table"
+                  >
                     No se encontraron productos.
                   </td>
-                </tr>
-              ) : (
-                productosFiltrados.map((producto) => (
-                  <tr key={producto.IdProducto}>
-                    <td>{producto.NombreProducto}</td>
-                    <td>{producto.Descripcion || '—'}</td>
-                    <td>{formatoPrecio(producto.Precio)}</td>
-                    {esAdministrador && (
-                    <td>
-                      
-                      <div className="product-actions">
-                        <button
-                          type="button"
-                          className="btn-edit"
-                          onClick={() => iniciarEdicion?.(producto)}
-                        >
-                          Editar
-                        </button>
 
-                        <button
-                          type="button"
-                          className="btn-delete"
-                          onClick={() => desactivarProducto?.(producto)}
-                        >
-                          Desactivar
-                        </button>
-                      </div>
+                </tr>
+
+              ) : (
+
+                productosFiltrados.map((producto) => (
+
+                  <tr key={producto.IdProducto}>
+
+                    <td>
+                      {producto.NombreProducto}
                     </td>
+
+                    <td>
+                      {producto.Descripcion || '—'}
+                    </td>
+
+                    <td>
+                      {formatoPrecio(producto.Precio)}
+                    </td>
+
+                    {esAdministrador && (
+
+                      <td>
+
+                        <div className="product-actions">
+
+                          <button
+                            type="button"
+                            className="btn-edit"
+                            onClick={() =>
+                              iniciarEdicion?.(producto)
+                            }
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-delete"
+                            onClick={() =>
+                              desactivarProducto?.(
+                                producto
+                              )
+                            }
+                          >
+                            Desactivar
+                          </button>
+
+                        </div>
+
+                      </td>
+
                     )}
+
                   </tr>
+
                 ))
+
               )}
+
             </tbody>
+
           </table>
+
         </div>
+
       </div>
 
+      {/* ========================================= */}
       {/* MODAL DE EDICIÓN */}
+      {/* ========================================= */}
+
       {esAdministrador && productoEditando && (
+
         <div
           className="modal-overlay"
           onClick={cerrarEdicion}
         >
+
           <div
             className="modal-content modal-edit-product"
             onClick={(e) => e.stopPropagation()}
@@ -686,8 +886,11 @@ export default function Inventario({
             aria-modal="true"
             aria-labelledby="titulo-editar-producto"
           >
+
             <div className="edit-modal-header">
+
               <div className="edit-modal-heading">
+
                 <h3 id="titulo-editar-producto">
                   Editar producto
                 </h3>
@@ -695,6 +898,7 @@ export default function Inventario({
                 <p>
                   Modifica los datos del producto seleccionado.
                 </p>
+
               </div>
 
               <button
@@ -705,6 +909,7 @@ export default function Inventario({
               >
                 ×
               </button>
+
             </div>
 
             <form
@@ -714,7 +919,10 @@ export default function Inventario({
                 guardarEdicion?.(e);
               }}
             >
+
+              {/* NOMBRE */}
               <div className="edit-form-field">
+
                 <label htmlFor="editar-nombre">
                   Nombre del producto
                 </label>
@@ -723,15 +931,23 @@ export default function Inventario({
                   id="editar-nombre"
                   name="NombreProducto"
                   type="text"
-                  value={productoEditando.NombreProducto || ''}
+                  value={
+                    productoEditando.NombreProducto || ''
+                  }
                   onChange={(e) =>
-                    cambiarEdicion?.('NombreProducto', e.target.value)
+                    cambiarEdicion?.(
+                      'NombreProducto',
+                      e.target.value
+                    )
                   }
                   required
                 />
+
               </div>
 
+              {/* DESCRIPCIÓN */}
               <div className="edit-form-field">
+
                 <label htmlFor="editar-descripcion">
                   Descripción
                 </label>
@@ -739,15 +955,23 @@ export default function Inventario({
                 <textarea
                   id="editar-descripcion"
                   name="Descripcion"
-                  value={productoEditando.Descripcion || ''}
+                  value={
+                    productoEditando.Descripcion || ''
+                  }
                   onChange={(e) =>
-                    cambiarEdicion?.('Descripcion', e.target.value)
+                    cambiarEdicion?.(
+                      'Descripcion',
+                      e.target.value
+                    )
                   }
                   rows={3}
                 />
+
               </div>
 
+              {/* PRECIO */}
               <div className="edit-form-field">
+
                 <label htmlFor="editar-precio">
                   Precio (C$)
                 </label>
@@ -758,22 +982,22 @@ export default function Inventario({
                   type="number"
                   min="0.01"
                   step="0.01"
-                  value={productoEditando.Precio ?? ''}
+                  value={
+                    productoEditando.Precio ?? ''
+                  }
                   onChange={(e) =>
-                    cambiarEdicion?.('Precio', e.target.value)
+                    cambiarEdicion?.(
+                      'Precio',
+                      e.target.value
+                    )
                   }
                   required
                 />
+
               </div>
 
+              {/* BOTONES */}
               <div className="edit-form-actions">
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={cerrarEdicion}
-                >
-                  Cancelar
-                </button>
 
                 <button
                   type="submit"
@@ -781,11 +1005,17 @@ export default function Inventario({
                 >
                   Guardar cambios
                 </button>
+
               </div>
+
             </form>
+
           </div>
+
         </div>
+
       )}
+
     </section>
   );
 }

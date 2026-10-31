@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 
 import Login from './pages/Login.jsx';
@@ -6,7 +6,7 @@ import Productos from './pages/Productos.jsx';
 import Inventario from './pages/Inventario.jsx';
 import Ventas from './pages/Ventas.jsx';
 
-const API = 'http://localhost:3000/api/productos';
+const API = '/api/productos';
 
 function fechaActual() {
   const hoy = new Date();
@@ -52,20 +52,20 @@ export default function App() {
   const [productoEditando, setProductoEditando] = useState(null);
   const [busqueda, setBusqueda] = useState('');
 
-  const cargarProductos = useCallback(async () => {
-    try {
-      const respuesta = await fetch(API);
+ const cargarProductos = useCallback(async () => {
+  try {
+    const respuesta = await fetch(`${API}/catalogo`);
 
-      if (!respuesta.ok) {
-        throw new Error('No se pudieron consultar los productos.');
-      }
-
-      const datos = await respuesta.json();
-      setProductos(Array.isArray(datos) ? datos : []);
-    } catch (e) {
-      setError(e.message || 'Error al cargar los productos.');
+    if (!respuesta.ok) {
+      throw new Error('No se pudieron consultar los productos.');
     }
-  }, []);
+
+    const datos = await respuesta.json();
+    setProductos(Array.isArray(datos) ? datos : []);
+  } catch (e) {
+    setError(e.message || 'Error al cargar los productos.');
+  }
+}, []);
 
   const cargarLotes = useCallback(async () => {
     try {
@@ -252,7 +252,7 @@ export default function App() {
   { id: 'inicio', nombre: 'Inicio', icono: '⌂' },
   { id: 'ventas', nombre: 'Ventas', icono: '🛒' },
   { id: 'productos', nombre: 'Productos', icono: '📦' },
-  { id: 'inventario', nombre: 'Inventario', icono: '▤' },
+  { id: 'inventario', nombre: 'Inventario', icono: '◈' },
   { id: 'facturacion', nombre: 'Facturación', icono: '🧾' },
   { id: 'reportes', nombre: 'Reportes', icono: '▥' },
 ];
@@ -419,7 +419,7 @@ const menu = menuCompleto.filter((item) => {
                   className="quick-action"
                   onClick={() => cambiarSeccion('inventario')}
                 >
-                  <span>▤</span>
+                  <span>◈</span>
                   <strong>Consultar inventario</strong>
                   <small>Revisar existencias y vencimientos</small>
                 </button>
@@ -517,3 +517,4 @@ const menu = menuCompleto.filter((item) => {
     </div>
   );
 }
+

@@ -1,8 +1,6 @@
+﻿import { useState } from 'react';
 
-
-import { useState } from 'react';
-
-const API = 'http://localhost:3000/api/productos';
+const API = '/api/productos';
 
 const formularioInicial = {
   NombreProducto: '',
@@ -286,7 +284,7 @@ export default function Productos({ onRegistrado }) {
           </div>
 
           <div className="form-note">
-            <span aria-hidden="true">ⓘ</span>
+            <span aria-hidden="true"></span>
             <p>
               Al registrar el producto, también se creará su existencia
               inicial y el primer lote con las fechas indicadas.
@@ -312,7 +310,7 @@ export default function Productos({ onRegistrado }) {
               className="btn-primary"
               disabled={cargando}
             >
-              {cargando ? 'Guardando...' : '＋ Registrar producto'}
+              {cargando ? 'Guardando...' : 'Registrar producto'}
             </button>
           </div>
         </form>
@@ -320,3 +318,4 @@ export default function Productos({ onRegistrado }) {
     </section>
   );
 }
+
