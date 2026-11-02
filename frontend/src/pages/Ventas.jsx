@@ -14,6 +14,14 @@ export default function Ventas({ onVentaRegistrada }) {
   const [mensaje, setMensaje] = useState("");
   const [metodoPago, setMetodoPago] = useState("Efectivo");
   const [canalVenta, setCanalVenta] = useState("Presencial");
+  // Venta registrada que todavía puede generar su comprobante.
+const [ventaRegistrada, setVentaRegistrada] = useState(null);
+
+// Comprobante generado.
+const [comprobanteGenerado, setComprobanteGenerado] = useState(null);
+
+// Estado de la generación.
+const [generandoComprobante, setGenerandoComprobante] = useState(false);
 
   const cargarProductos = useCallback(async (mostrarCarga = true) => {
     if (mostrarCarga) setCargando(true);
@@ -261,16 +269,32 @@ export default function Ventas({ onVentaRegistrada }) {
       }
 
       // La venta ya se registró en el servidor.
-      setCarrito([]);
-      setBusqueda("");
-      setMensaje(
-        `¡Venta registrada correctamente! Número de venta: ${
-          resultado.IdVenta ?? "registrada"
-        }. Total: C$ ${Number(
-          resultado.Total ?? total
-        ).toFixed(2)}.`
-      );
+      const idVentaRegistrada = Number(resultado.IdVenta);
 
+if (!Number.isInteger(idVentaRegistrada) || idVentaRegistrada <= 0) {
+  throw new Error(
+    "La venta se registró, pero no se recibió un identificador válido."
+  );
+}
+
+// Guardar la venta para generar su comprobante.
+setVentaRegistrada({
+  IdVenta: idVentaRegistrada,
+  Total: Number(resultado.Total ?? total),
+});
+
+setComprobanteGenerado(null);
+
+setCarrito([]);
+setBusqueda("");
+
+setMensaje(
+  `¡Venta registrada correctamente! Número de venta: ${
+    idVentaRegistrada
+  }. Total: C$ ${Number(
+    resultado.Total ?? total
+  ).toFixed(2)}.`
+);
       // Actualiza los productos del módulo Ventas.
       await cargarProductos(false);
 
@@ -293,6 +317,73 @@ export default function Ventas({ onVentaRegistrada }) {
     }
   }
 
+  
+  async function generarComprobante() {
+    if (!ventaRegistrada?.IdVenta || generandoComprobante || comprobanteGenerado) {
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `¿Deseas generar el comprobante de la venta ${ventaRegistrada.IdVenta}?`
+    );
+
+    if (!confirmar) return;
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("Tu sesión ha expirado. Inicia sesión nuevamente.");
+      return;
+    }
+
+    setGenerandoComprobante(true);
+    setError("");
+    setMensaje("");
+
+    try {
+      const respuesta = await fetch(`${API}/facturas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          IdVenta: ventaRegistrada.IdVenta,
+        }),
+      });
+
+      const resultado = await respuesta.json().catch(() => ({}));
+
+      if (!respuesta.ok) {
+        throw new Error(
+          resultado.mensaje || "No se pudo generar el comprobante."
+        );
+      }
+
+      setComprobanteGenerado(resultado);
+
+      setMensaje(
+        `Comprobante ${resultado.factura.NumeroFactura} generado correctamente.`
+      );
+    } catch (err) {
+      setError(
+        err.message || "Ocurrió un error al generar el comprobante."
+      );
+    } finally {
+      setGenerandoComprobante(false);
+    }
+  }
+
+  function quitarComprobante() {
+    setComprobanteGenerado(null);
+    setVentaRegistrada(null);
+
+    setMensaje(
+      "Comprobante ocultado correctamente. Sigue guardado en el sistema."
+    );
+  }
+
+  
   return (
     <main className="ventas-page">
       <header className="ventas-header">
@@ -314,6 +405,139 @@ export default function Ventas({ onVentaRegistrada }) {
           {mensaje}
         </div>
       )}
+
+      
+  {/* Botón para generar comprobante de la venta registrada */}
+  {ventaRegistrada && !comprobanteGenerado && (
+    <section className="ventas-factura-accion">
+      <div>
+        <h3>Venta registrada correctamente</h3>
+
+        <p>
+          Número de venta: #{ventaRegistrada.IdVenta}
+        </p>
+
+        <p>
+          Total: C$ {ventaRegistrada.Total.toFixed(2)}
+        </p>
+
+        <small>
+          Ahora puedes generar el comprobante de esta operación.
+        </small>
+      </div>
+
+      <button
+        type="button"
+        className="ventas-generar-factura"
+        onClick={generarComprobante}
+        disabled={generandoComprobante}
+      >
+        {generandoComprobante
+          ? "Generando Factura..."
+          : "Generar Factura"}
+      </button>
+    </section>
+  )}
+
+  {/* Mostrar comprobante después de generarlo */}
+  {comprobanteGenerado && (
+    <section className="ventas-comprobante">
+      <div className="ventas-comprobante-encabezado">
+        <h2>PANADERÍA EMMANUEL</h2>
+        <p>COMPROBANTE DE VENTA</p>
+      </div>
+
+      <div className="ventas-comprobante-info">
+        <p>
+          <strong>Número:</strong>{" "}
+          {comprobanteGenerado.factura.NumeroFactura}
+        </p>
+
+        <p>
+          <strong>Fecha de emisión:</strong>{" "}
+          {new Date(
+            comprobanteGenerado.factura.FechaEmision
+          ).toLocaleString("es-NI")}
+        </p>
+
+        <p>
+          <strong>Venta:</strong>{" "}
+          #{comprobanteGenerado.venta.IdVenta}
+        </p>
+
+        <p>
+          <strong>Método de pago:</strong>{" "}
+          {comprobanteGenerado.venta.MetodoPago}
+        </p>
+
+        <p>
+          <strong>Canal de venta:</strong>{" "}
+          {comprobanteGenerado.venta.CanalVenta}
+        </p>
+      </div>
+
+      <h3>Productos vendidos</h3>
+
+      <div className="ventas-tabla-contenedor">
+        <table className="ventas-tabla">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {comprobanteGenerado.productos.map((producto) => (
+              <tr key={producto.IdDetalle}>
+                <td>{producto.NombreProducto}</td>
+                <td>{producto.Cantidad}</td>
+                <td>
+                  C$ {Number(producto.PrecioUnitario).toFixed(2)}
+                </td>
+                <td>
+                  C$ {Number(producto.Subtotal).toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="ventas-comprobante-total">
+        <strong>TOTAL</strong>
+
+        <strong>
+          C$ {Number(comprobanteGenerado.venta.Total).toFixed(2)}
+        </strong>
+      </div>
+
+      
+
+     <div className="ventas-comprobante-acciones ventas-no-imprimir">
+  <button
+    type="button"
+    className="ventas-generar-factura"
+    onClick={() => window.print()}
+  >
+    Imprimir comprobante
+  </button>
+
+  <button
+    type="button"
+    className="ventas-quitar-comprobante"
+    onClick={quitarComprobante}
+  >
+    Quitar
+  </button>
+</div>
+    </section>
+  )}
+
+ 
+
 
       <div className="ventas-columnas">
         <section className="ventas-panel">
