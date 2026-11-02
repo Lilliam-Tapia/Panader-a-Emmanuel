@@ -52,6 +52,9 @@ app.use('/api/auth', authRoutes)
 const ventasRoutes = require('./routes/ventas')
 app.use('/api/ventas', ventasRoutes)
 
+const facturasRoutes = require('./routes/facturas.routes')
+app.use('/api/facturas', facturasRoutes)
+
 // Archivos de React
 app.use(express.static(path.join(__dirname, '../public')))
 

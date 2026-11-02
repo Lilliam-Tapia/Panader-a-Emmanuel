@@ -5,6 +5,7 @@ import Login from './pages/Login.jsx';
 import Productos from './pages/Productos.jsx';
 import Inventario from './pages/Inventario.jsx';
 import Ventas from './pages/Ventas.jsx';
+import Facturacion from './pages/Facturacion.jsx';
 
 const API = '/api/productos';
 
@@ -256,11 +257,11 @@ export default function App() {
   { id: 'facturacion', nombre: 'Facturación', icono: '🧾' },
   { id: 'reportes', nombre: 'Reportes', icono: '▥' },
 ];
-
 const menu = menuCompleto.filter((item) => {
   if (item.id === 'reportes') {
     return esAdministrador;
   }
+
 
   return true;
 });
@@ -492,28 +493,24 @@ const menu = menuCompleto.filter((item) => {
      {seccion === 'ventas' && (
   <Ventas onVentaRegistrada={actualizarDatos} />
 )}
-        
 
-{['facturacion', 'reportes'].includes(seccion) && (
+      
+{seccion === 'facturacion' && (
+  <Facturacion esAdministrador={esAdministrador} />
+)}
+
+{seccion === 'reportes' && (
   <section className="panel placeholder-panel">
-    <div className="placeholder-icon">
-      {seccion === 'facturacion' ? '🧾' : '▥'}
-    </div>
+    <div className="placeholder-icon">▥</div>
 
-    <h2>
-      {seccion === 'facturacion'
-        ? 'Módulo de facturación'
-        : 'Módulo de reportes'}
-    </h2>
+    <h2>Módulo de reportes</h2>
 
     <p>
       Este módulo todavía está pendiente de implementar.
-      Puedes continuar trabajando en Productos e Inventario.
     </p>
   </section>
 )}
-       
-      </main>
+ </main>
     </div>
   );
 }

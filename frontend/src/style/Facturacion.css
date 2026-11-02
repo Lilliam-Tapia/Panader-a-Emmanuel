@@ -1,0 +1,514 @@
+
+
+.facturacion-page {
+  width: 100%;
+  padding: 20px;
+  color: #26382d;
+  font-family: "Segoe UI", Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.facturacion-page * {
+  box-sizing: border-box;
+}
+
+.facturacion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.facturacion-header h2 {
+  margin: 0 0 7px;
+  font-size: 23px;
+}
+
+.facturacion-header p,
+.facturacion-panel-titulo p {
+  margin: 0;
+  color: #748078;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.facturacion-panel {
+  min-width: 0;
+  margin-bottom: 22px;
+  padding: 22px;
+  border: 1px solid #e2e9e3;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(34, 54, 40, 0.05);
+}
+
+.facturacion-panel-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.facturacion-panel h3 {
+  margin: 0 0 7px;
+  color: #2d4033;
+}
+
+.facturacion-contador {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #edf5ee;
+  color: #347047;
+  font-weight: 700;
+}
+
+.facturacion-tabla-contenedor {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.facturacion-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.facturacion-tabla th {
+  padding: 13px 10px;
+  background: #f3f7f3;
+  color: #45574a;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.facturacion-tabla td {
+  padding: 13px 10px;
+  border-bottom: 1px solid #edf0ed;
+}
+
+.facturacion-tabla tr:hover td {
+  background: #fafcfa;
+}
+
+.facturacion-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.facturacion-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.facturacion-btn.principal {
+  background: #36764a;
+  color: white;
+}
+
+.facturacion-btn.principal:hover:not(:disabled) {
+  background: #285d39;
+}
+
+.facturacion-btn.secundario {
+  border: 1px solid #d9e3da;
+  background: #fff;
+  color: #385641;
+}
+
+.facturacion-btn.ver {
+  background: #eaf3eb;
+  color: #306b40;
+}
+
+.facturacion-vacio {
+  padding: 30px 15px;
+  color: #758078;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.facturacion-error {
+  margin-bottom: 18px;
+  padding: 13px 15px;
+  border: 1px solid #efcaca;
+  border-radius: 8px;
+  background: #fff1f1;
+  color: #a52d2d;
+}
+
+.facturacion-mensaje {
+  margin-bottom: 18px;
+  padding: 13px 15px;
+  border: 1px solid #cce4d0;
+  border-radius: 8px;
+  background: #eff8f0;
+  color: #28633b;
+}
+
+.facturacion-detalle-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 22px;
+}
+
+.facturacion-detalle-encabezado h3 {
+  margin-bottom: 5px;
+}
+
+.facturacion-detalle-encabezado p {
+  margin: 0;
+  color: #347047;
+  font-weight: 600;
+}
+
+.facturacion-historial-encabezado {
+  align-items: flex-start;
+}
+
+.facturacion-historial-resumen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 5px 0 18px;
+  color: #69766d;
+  font-size: 14px;
+}
+
+.facturacion-historial-resumen strong {
+  color: #347047;
+  font-size: 22px;
+}
+
+.facturacion-busqueda {
+  width: 100%;
+  max-width: 450px;
+  margin-bottom: 20px;
+  padding: 12px;
+  border: 1px solid #dce5dd;
+  border-radius: 8px;
+  outline: none;
+  font: inherit;
+}
+
+.facturacion-busqueda:focus {
+  border-color: #52845e;
+  box-shadow: 0 0 0 3px rgba(82, 132, 94, 0.1);
+}
+
+.facturacion-comprobante {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 20px;
+  color: #26382d;
+}
+
+.comprobante-encabezado {
+  padding-bottom: 18px;
+  border-bottom: 2px solid #dce6dd;
+  text-align: center;
+}
+
+.comprobante-encabezado h2 {
+  margin: 0 0 7px;
+  font-size: 21px;
+}
+
+.comprobante-encabezado p {
+  margin: 0;
+  color: #627367;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.comprobante-datos {
+  margin: 18px 0;
+  color: #56645a;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.comprobante-datos p {
+  margin: 5px 0;
+}
+
+.comprobante-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 20px;
+  padding: 15px 0;
+  border-top: 1px solid #dfe7e0;
+  font-size: 17px;
+}
+
+.comprobante-total strong {
+  color: #28633b;
+}
+
+.comprobante-nota {
+  color: #78837a;
+  font-size: 12px;
+  text-align: center;
+}
+
+.facturacion-acciones {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+@media (max-width: 850px) {
+  .facturacion-historial-encabezado {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 700px) {
+  .facturacion-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .facturacion-page {
+    padding: 10px;
+  }
+
+  .facturacion-panel {
+    padding: 14px;
+  }
+
+  .facturacion-detalle-encabezado {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .facturacion-comprobante,
+  .facturacion-comprobante * {
+    visibility: visible;
+  }
+
+  .facturacion-comprobante {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    padding: 20px;
+    border: none;
+    box-shadow: none;
+  }
+
+  .facturacion-no-imprimir {
+    display: none !important;
+  }
+}
+
+
+/* ==========================================
+   IDENTIDAD VISUAL - PANADERÍA EMMANUEL
+   Colores crema, café y naranja
+========================================== */
+
+.facturacion-page {
+  color: #63351f;
+}
+
+.facturacion-header-texto h2 {
+  color: #63351f;
+}
+
+.facturacion-panel {
+  background: #ffffff;
+  border-color: #eadbce;
+  box-shadow: 0 4px 14px rgba(99, 53, 31, 0.05);
+}
+
+.facturacion-panel h3,
+.facturacion-panel-titulo h3 {
+  color: #63351f;
+}
+
+.facturacion-panel-titulo p,
+.facturacion-header-texto p {
+  color: #927766;
+}
+
+.facturacion-contador {
+  background: #f5e5d9;
+  color: #8c482d;
+}
+
+.facturacion-tabla th {
+  background: #f8eee6;
+  color: #63351f;
+}
+
+.facturacion-tabla td {
+  color: #563c2f;
+}
+
+.facturacion-tabla tr:hover td {
+  background: #fcf7f2;
+}
+
+.facturacion-btn.principal {
+  background: #a95736;
+  color: #ffffff;
+}
+
+.facturacion-btn.principal:hover:not(:disabled) {
+  background: #884329;
+}
+
+.facturacion-btn.secundario {
+  border-color: #e5d2c2;
+  background: #ffffff;
+  color: #75452e;
+}
+
+.facturacion-btn.secundario:hover {
+  background: #f8eee6;
+}
+
+.facturacion-btn.ver {
+  background: #f5e5d9;
+  color: #87452c;
+}
+
+.facturacion-btn.ver:hover {
+  background: #edd4c2;
+}
+
+.facturacion-busqueda {
+  border-color: #e5d2c2;
+  color: #63351f;
+}
+
+.facturacion-busqueda:focus {
+  border-color: #bd7049;
+  box-shadow: 0 0 0 3px rgba(189, 112, 73, 0.12);
+}
+
+.facturacion-error {
+  border-color: #edc8bd;
+  background: #fff1ed;
+  color: #963d2d;
+}
+
+.facturacion-mensaje {
+  border-color: #e6cdbb;
+  background: #faf0e7;
+  color: #78432c;
+}
+
+.facturacion-total strong:last-child {
+  color: #a95736;
+}
+
+.comprobante-encabezado {
+  border-bottom-color: #eadbce;
+}
+
+.comprobante-encabezado h2 {
+  color: #63351f;
+}
+
+.comprobante-encabezado p {
+  color: #a05c3c;
+}
+
+.facturacion-datos {
+  color: #705543;
+}
+
+.comprobante-nota {
+  color: #927766;
+}
+
+
+/* Encabezado de facturación */
+.facturacion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* Contenedor del texto y la ilustración */
+.facturacion-header-contenido {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  min-width: 0;
+}
+
+/* Texto principal */
+.facturacion-header-texto {
+  order: 1;
+  flex: 1;
+}
+
+.facturacion-header-texto h2 {
+  margin: 0 0 7px;
+  color: #63351f;
+  font-size: 23px;
+}
+
+.facturacion-header-texto p {
+  margin: 0;
+  color: #927766;
+  font-size: 14px;
+}
+
+/* Ilustración pequeña y decorativa */
+.facturacion-header-ilustracion {
+  order: 2;
+  width: 90px;
+  height: 75px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.facturacion-ilustracion {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 650px) {
+  .facturacion-header-ilustracion {
+    width: 65px;
+    height: 60px;
+  }
+}
+
+/* Color del contador de comprobantes */
+.facturacion-page .facturacion-contador {
+  background: #f5e5d9;
+  color: #a95736;
+  border: 1px solid #ead3c2;
+}
