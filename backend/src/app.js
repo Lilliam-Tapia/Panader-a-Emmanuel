@@ -34,10 +34,14 @@ app.get('/api/prueba-db', async (req, res) => {
       mensaje: 'Conexión a SQL Server exitosa',
       datos: resultado.recordset[0]
     })
-  } catch (error) {
+    } catch (error) {
+    console.error('ERROR DETALLADO DE PRUEBA DB:', error);
+
     res.status(500).json({
       mensaje: 'No se pudo conectar con SQL Server',
-      error: error.message
+      error: error.message,
+      codigo: error.code,
+      nombre: error.name
     })
   }
 })
@@ -54,6 +58,9 @@ app.use('/api/ventas', ventasRoutes)
 
 const facturasRoutes = require('./routes/facturas.routes')
 app.use('/api/facturas', facturasRoutes)
+
+const reportesRoutes = require('./routes/reportes.routes')
+app.use('/api/reportes', reportesRoutes)
 
 // Archivos de React
 app.use(express.static(path.join(__dirname, '../public')))

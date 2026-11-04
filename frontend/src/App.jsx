@@ -6,6 +6,7 @@ import Productos from './pages/Productos.jsx';
 import Inventario from './pages/Inventario.jsx';
 import Ventas from './pages/Ventas.jsx';
 import Facturacion from './pages/Facturacion.jsx';
+import Reportes from './pages/Reportes.jsx';
 
 const API = '/api/productos';
 
@@ -500,15 +501,7 @@ const menu = menuCompleto.filter((item) => {
 )}
 
 {seccion === 'reportes' && (
-  <section className="panel placeholder-panel">
-    <div className="placeholder-icon">▥</div>
-
-    <h2>Módulo de reportes</h2>
-
-    <p>
-      Este módulo todavía está pendiente de implementar.
-    </p>
-  </section>
+  <Reportes />
 )}
  </main>
     </div>

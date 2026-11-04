@@ -62,9 +62,24 @@ router.get('/catalogo', async (req, res) => {
         P.NombreProducto,
         P.Descripcion,
         P.Precio,
-        P.Estado
+        P.Estado,
+        COALESCE(SUM(L.CantidadDisponible), 0) AS Existencia,
+        COALESCE(I.StockMinimo, 0) AS StockMinimo
       FROM dbo.Productos AS P
+      LEFT JOIN dbo.LotesInventario AS L
+        ON P.IdProducto = L.IdProducto
+        AND L.CantidadDisponible > 0
+        AND L.FechaVencimiento >= CAST(GETDATE() AS DATE)
+      LEFT JOIN dbo.Inventario AS I
+        ON P.IdProducto = I.IdProducto
       WHERE P.Estado = 1
+      GROUP BY
+        P.IdProducto,
+        P.NombreProducto,
+        P.Descripcion,
+        P.Precio,
+        P.Estado,
+        I.StockMinimo
       ORDER BY P.NombreProducto;
     `)
 
