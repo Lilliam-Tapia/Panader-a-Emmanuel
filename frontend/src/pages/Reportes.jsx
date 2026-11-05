@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import "../style/Reportes.css";
+
 import {
   BarChart,
   Bar,
@@ -12,6 +13,10 @@ import {
 } from "recharts";
 
 const API = "/api/reportes";
+
+// =============================================
+// FUNCIONES AUXILIARES
+// =============================================
 
 function fechaActual() {
   const hoy = new Date();
@@ -48,43 +53,55 @@ function formatoFecha(fecha) {
   });
 }
 
+// =============================================
+// COMPONENTE PRINCIPAL
+// =============================================
+
 export default function Reportes() {
+
+  // Fechas
   const [desde, setDesde] = useState(primerDiaMes());
   const [hasta, setHasta] = useState(fechaActual());
 
-  // Estados del reporte por período
+  // Reporte por período
   const [resumen, setResumen] = useState(null);
   const [ventas, setVentas] = useState([]);
   const [ventasDiarias, setVentasDiarias] = useState([]);
 
-  // Estados del reporte por producto
+  // Reporte por producto
   const [resumenProductos, setResumenProductos] = useState(null);
   const [productos, setProductos] = useState([]);
 
+  // Reporte por canal
+  const [canales, setCanales] = useState([]);
+
+  // Estados de carga
   const [cargando, setCargando] = useState(false);
   const [cargandoProductos, setCargandoProductos] = useState(false);
+  const [cargandoCanales, setCargandoCanales] = useState(false);
 
+  // Mostrar u ocultar reportes
+  const [mostrarReporteVentas, setMostrarReporteVentas] = useState(false);
+  const [mostrarReporteProductos, setMostrarReporteProductos] = useState(false);
+  const [mostrarReporteCanales, setMostrarReporteCanales] = useState(false);
+
+  // Mensajes
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
-
-  // Estados del reporte por canal
-const [canales, setCanales] = useState([]);
-const [cargandoCanales, setCargandoCanales] = useState(false);
 
   // =============================================
   // VALIDAR FECHAS
   // =============================================
 
   function validarFechas() {
+
     if (!desde || !hasta) {
       setError("Selecciona la fecha inicial y la fecha final.");
       return false;
     }
 
     if (desde > hasta) {
-      setError(
-        "La fecha inicial no puede ser posterior a la fecha final."
-      );
+      setError("La fecha inicial no puede ser posterior a la fecha final.");
       return false;
     }
 
@@ -92,12 +109,43 @@ const [cargandoCanales, setCargandoCanales] = useState(false);
   }
 
   // =============================================
+  // CERRAR REPORTES
+  // =============================================
+
+  function cerrarReporte(tipo) {
+
+    setError("");
+    setMensaje("");
+
+    if (tipo === "ventas") {
+      setMostrarReporteVentas(false);
+      setResumen(null);
+      setVentas([]);
+      setVentasDiarias([]);
+    }
+
+    if (tipo === "productos") {
+      setMostrarReporteProductos(false);
+      setResumenProductos(null);
+      setProductos([]);
+    }
+
+    if (tipo === "canales") {
+      setMostrarReporteCanales(false);
+      setCanales([]);
+    }
+  }
+
+  // =============================================
   // REPORTE DE VENTAS POR PERÍODO
   // =============================================
 
   async function generarReporte() {
+
     setError("");
     setMensaje("");
+
+    setMostrarReporteVentas(false);
     setResumen(null);
     setVentas([]);
     setVentasDiarias([]);
@@ -112,12 +160,10 @@ const [cargandoCanales, setCargandoCanales] = useState(false);
     }
 
     try {
+
       setCargando(true);
 
-      const parametros = new URLSearchParams({
-        desde,
-        hasta,
-      });
+      const parametros = new URLSearchParams({ desde, hasta });
 
       const respuesta = await fetch(
         `${API}/ventas-periodo?${parametros.toString()}`,
@@ -133,8 +179,7 @@ const [cargandoCanales, setCargandoCanales] = useState(false);
 
       if (!respuesta.ok) {
         throw new Error(
-          resultado.mensaje ||
-          "No se pudo generar el reporte de ventas."
+          resultado.mensaje || "No se pudo generar el reporte de ventas."
         );
       }
 
@@ -144,25 +189,24 @@ const [cargandoCanales, setCargandoCanales] = useState(false);
       });
 
       setVentas(
-        Array.isArray(resultado.ventas)
-          ? resultado.ventas
-          : []
+        Array.isArray(resultado.ventas) ? resultado.ventas : []
       );
 
       setVentasDiarias(
-        Array.isArray(resultado.ventasDiarias)
-          ? resultado.ventasDiarias
-          : []
+        Array.isArray(resultado.ventasDiarias) ? resultado.ventasDiarias : []
       );
 
+      setMostrarReporteVentas(true);
       setMensaje("Reporte de ventas por período generado correctamente.");
 
     } catch (err) {
-      setError(
-        err.message || "Ocurrió un error al generar el reporte."
-      );
+
+      setError(err.message || "Ocurrió un error al generar el reporte.");
+
     } finally {
+
       setCargando(false);
+
     }
   }
 
@@ -171,8 +215,11 @@ const [cargandoCanales, setCargandoCanales] = useState(false);
   // =============================================
 
   async function generarReporteProductos() {
+
     setError("");
     setMensaje("");
+
+    setMostrarReporteProductos(false);
     setResumenProductos(null);
     setProductos([]);
 
@@ -186,12 +233,10 @@ const [cargandoCanales, setCargandoCanales] = useState(false);
     }
 
     try {
+
       setCargandoProductos(true);
 
-      const parametros = new URLSearchParams({
-        desde,
-        hasta,
-      });
+      const parametros = new URLSearchParams({ desde, hasta });
 
       const respuesta = await fetch(
         `${API}/ventas-producto?${parametros.toString()}`,
@@ -218,91 +263,104 @@ const [cargandoCanales, setCargandoCanales] = useState(false);
       });
 
       setProductos(
-        Array.isArray(resultado.productos)
-          ? resultado.productos
-          : []
+        Array.isArray(resultado.productos) ? resultado.productos : []
       );
 
+      setMostrarReporteProductos(true);
       setMensaje("Reporte de ventas por producto generado correctamente.");
 
     } catch (err) {
+
       setError(
         err.message || "Ocurrió un error al generar el reporte por producto."
       );
+
     } finally {
+
       setCargandoProductos(false);
+
     }
   }
 
   // =============================================
-// REPORTE DE VENTAS POR CANAL
-// =============================================
+  // REPORTE DE VENTAS POR CANAL
+  // =============================================
 
-async function generarReporteCanales() {
-  setError("");
-  setMensaje("");
-  setCanales([]);
+  async function generarReporteCanales() {
 
-  if (!validarFechas()) return;
+    setError("");
+    setMensaje("");
 
-  const token = localStorage.getItem("token");
+    setMostrarReporteCanales(false);
+    setCanales([]);
 
-  if (!token) {
-    setError("Tu sesión ha expirado. Inicia sesión nuevamente.");
-    return;
-  }
+    if (!validarFechas()) return;
 
-  try {
-    setCargandoCanales(true);
+    const token = localStorage.getItem("token");
 
-    const parametros = new URLSearchParams({
-      desde,
-      hasta,
-    });
-
-    const respuesta = await fetch(
-      `${API}/ventas-canal?${parametros.toString()}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    const resultado = await respuesta.json().catch(() => ({}));
-
-    if (!respuesta.ok) {
-      throw new Error(
-        resultado.mensaje ||
-        "No se pudo generar el reporte de ventas por canal."
-      );
+    if (!token) {
+      setError("Tu sesión ha expirado. Inicia sesión nuevamente.");
+      return;
     }
 
-    setCanales(
-      Array.isArray(resultado.canales)
-        ? resultado.canales
-        : []
-    );
+    try {
 
-    setMensaje("Reporte de ventas por canal generado correctamente.");
+      setCargandoCanales(true);
 
-  } catch (err) {
-    setError(
-      err.message || "Ocurrió un error al generar el reporte por canal."
-    );
-  } finally {
-    setCargandoCanales(false);
+      const parametros = new URLSearchParams({ desde, hasta });
+
+      const respuesta = await fetch(
+        `${API}/ventas-canal?${parametros.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const resultado = await respuesta.json().catch(() => ({}));
+
+      if (!respuesta.ok) {
+        throw new Error(
+          resultado.mensaje ||
+          "No se pudo generar el reporte de ventas por canal."
+        );
+      }
+
+      setCanales(
+        Array.isArray(resultado.canales) ? resultado.canales : []
+      );
+
+      setMostrarReporteCanales(true);
+      setMensaje("Reporte de ventas por canal generado correctamente.");
+
+    } catch (err) {
+
+      setError(
+        err.message || "Ocurrió un error al generar el reporte por canal."
+      );
+
+    } finally {
+
+      setCargandoCanales(false);
+
+    }
   }
-}
+
+  // =============================================
+  // RENDERIZADO
+  // =============================================
 
   return (
+
     <main className="reportes-page">
+
+      {/* ENCABEZADO */}
 
       <header className="reportes-header">
         <div>
           <h2>Reportes comerciales</h2>
-
           <p>
             Consulta y analiza las operaciones de venta de
             Panadería Emmanuel.
@@ -313,6 +371,8 @@ async function generarReporteCanales() {
           Panel administrativo
         </span>
       </header>
+
+      {/* MENSAJES */}
 
       {error && (
         <div className="reportes-error" role="alert">
@@ -326,9 +386,7 @@ async function generarReporteCanales() {
         </div>
       )}
 
-      {/* =====================================
-          FILTRO DE FECHAS
-      ===================================== */}
+      {/* FILTRO DE FECHAS */}
 
       <section className="reportes-panel">
 
@@ -341,9 +399,7 @@ async function generarReporteCanales() {
         <div className="reportes-filtros">
 
           <div className="reportes-campo">
-            <label htmlFor="fechaDesde">
-              Fecha inicial
-            </label>
+            <label htmlFor="fechaDesde">Fecha inicial</label>
 
             <input
               id="fechaDesde"
@@ -355,9 +411,7 @@ async function generarReporteCanales() {
           </div>
 
           <div className="reportes-campo">
-            <label htmlFor="fechaHasta">
-              Fecha final
-            </label>
+            <label htmlFor="fechaHasta">Fecha final</label>
 
             <input
               id="fechaHasta"
@@ -372,9 +426,7 @@ async function generarReporteCanales() {
         </div>
       </section>
 
-      {/* =====================================
-          REPORTE DE VENTAS POR PERÍODO
-      ===================================== */}
+      {/* GENERAR REPORTE DE VENTAS */}
 
       <section className="reportes-panel">
 
@@ -395,104 +447,112 @@ async function generarReporteCanales() {
 
       </section>
 
-      {resumen && (
+      {/* RESULTADOS DE VENTAS */}
+
+      {mostrarReporteVentas && resumen && (
         <>
+
           <section className="reportes-resumen">
 
             <article className="reportes-indicador">
               <span>Cantidad de ventas</span>
-
-              <strong>
-                {Number(resumen.CantidadVentas || 0)}
-              </strong>
+              <strong>{Number(resumen.CantidadVentas || 0)}</strong>
             </article>
 
             <article className="reportes-indicador">
               <span>Total vendido</span>
-
-              <strong>
-                {formatoMoneda(resumen.TotalVendido)}
-              </strong>
+              <strong>{formatoMoneda(resumen.TotalVendido)}</strong>
             </article>
 
           </section>
-          
+
+          {/* GRÁFICO DE VENTAS POR DÍA */}
+
           <section className="reportes-panel">
 
-  <h3>Gráfico de ventas por día</h3>
+            <div className="reportes-titulo-con-cerrar">
+              <h3>Gráfico de ventas por día</h3>
 
-  <p className="reportes-descripcion">
-    Visualización de los ingresos obtenidos durante
-    el período seleccionado.
-  </p>
+              <button
+                type="button"
+                className="reportes-cerrar"
+                onClick={() => cerrarReporte("ventas")}
+              >
+                ✕ Cerrar reporte
+              </button>
+            </div>
 
-  {ventasDiarias.length > 0 ? (
-    <div style={{ width: "100%", height: 320 }}>
+            <p className="reportes-descripcion">
+              Visualización de los ingresos obtenidos durante
+              el período seleccionado.
+            </p>
 
-      <ResponsiveContainer width="100%" height="100%">
+            {ventasDiarias.length > 0 ? (
 
-        <BarChart
-          data={ventasDiarias}
-          margin={{
-            top: 15,
-            right: 20,
-            left: 10,
-            bottom: 10
-          }}
-        >
+              <div style={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={ventasDiarias}
+                    margin={{
+                      top: 15,
+                      right: 20,
+                      left: 10,
+                      bottom: 10
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
 
-          <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="Fecha"
+                      interval={0}
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(fecha) =>
+                        new Date(fecha).toLocaleDateString("es-NI", {
+                          day: "2-digit",
+                          month: "short",
+                          timeZone: "UTC"
+                        })
+                      }
+                    />
 
-          <XAxis
-  dataKey="Fecha"
-  interval={0}
-  tick={{ fontSize: 12 }}
-  tickFormatter={(fecha) =>
-    new Date(fecha).toLocaleDateString("es-NI", {
-      day: "2-digit",
-      month: "short",
-      timeZone: "UTC"
-    })
-  }
-/>
+                    <YAxis />
 
-          <YAxis />
+                    <Tooltip
+                      cursor={{ fill: "transparent" }}
+                      formatter={(valor) => [
+                        formatoMoneda(valor),
+                        "Total vendido"
+                      ]}
+                      labelFormatter={(fecha) =>
+                        new Date(fecha).toLocaleDateString("es-NI", {
+                          dateStyle: "long",
+                          timeZone: "UTC"
+                        })
+                      }
+                    />
 
-          <Tooltip
-            cursor={{ fill: "transparent" }}
-            formatter={(valor) => [
-              formatoMoneda(valor),
-              "Total vendido"
-            ]}
-            labelFormatter={(fecha) =>
-              new Date(fecha).toLocaleDateString("es-NI", {
-                dateStyle: "long",
-                timeZone: "UTC"
-              })
-            }
-          />
+                    <Bar
+                      dataKey="TotalVendido"
+                      name="Total vendido"
+                      fill="#3b82f6"
+                      maxBarSize={65}
+                      radius={[6, 6, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
 
-          <Bar
-  dataKey="TotalVendido"
-  name="Total vendido"
-  fill="#3b82f6"
-  maxBarSize={65}
-  radius={[6, 6, 0, 0]}
-/>
+            ) : (
 
-        </BarChart>
+              <p className="reportes-tabla-vacio">
+                No hay ventas registradas para representar en el gráfico.
+              </p>
 
-      </ResponsiveContainer>
+            )}
 
-    </div>
-  ) : (
-    <p className="reportes-tabla-vacio">
-      No hay ventas registradas para representar en el gráfico.
-    </p>
-  )}
+          </section>
 
-</section>
-
+          {/* DETALLE DE VENTAS */}
 
           <section className="reportes-panel">
 
@@ -503,7 +563,6 @@ async function generarReporteCanales() {
             </p>
 
             <div className="reportes-tabla-contenedor">
-
               <table className="reportes-tabla">
 
                 <thead>
@@ -518,7 +577,6 @@ async function generarReporteCanales() {
                 </thead>
 
                 <tbody>
-
                   {ventas.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="reportes-tabla-vacio">
@@ -528,42 +586,32 @@ async function generarReporteCanales() {
                   ) : (
                     ventas.map((venta) => (
                       <tr key={venta.IdVenta}>
-
                         <td>#{venta.IdVenta}</td>
-
                         <td>{formatoFecha(venta.FechaVenta)}</td>
-
                         <td>{venta.MetodoPago}</td>
-
                         <td>{venta.CanalVenta}</td>
-
                         <td className="reportes-total">
                           {formatoMoneda(venta.Total)}
                         </td>
-
                         <td>
                           <span className="reportes-estado">
                             Completada
                           </span>
                         </td>
-
                       </tr>
                     ))
                   )}
-
                 </tbody>
 
               </table>
-
             </div>
 
           </section>
+
         </>
       )}
 
-      {/* =====================================
-          REPORTE DE VENTAS POR PRODUCTO
-      ===================================== */}
+      {/* GENERAR REPORTE POR PRODUCTO */}
 
       <section className="reportes-panel">
 
@@ -587,31 +635,40 @@ async function generarReporteCanales() {
 
       </section>
 
-      {resumenProductos && (
+      {/* RESULTADOS POR PRODUCTO */}
+
+      {mostrarReporteProductos && resumenProductos && (
         <>
-          {/* INDICADORES */}
+
           <section className="reportes-resumen">
 
             <article className="reportes-indicador">
               <span>Productos vendidos</span>
-
-              <strong>
-                {Number(resumenProductos.cantidadProductos)}
-              </strong>
+              <strong>{Number(resumenProductos.cantidadProductos)}</strong>
             </article>
 
             <article className="reportes-indicador">
               <span>Total de unidades vendidas</span>
-
-              <strong>
-                {Number(resumenProductos.totalUnidades)}
-              </strong>
+              <strong>{Number(resumenProductos.totalUnidades)}</strong>
             </article>
 
-            {/*AQUIIIIIII*/}
-                      <section className="reportes-panel">
+          </section>
 
-            <h3>Gráfico de ventas por producto</h3>
+          {/* GRÁFICO DE VENTAS POR PRODUCTO */}
+
+          <section className="reportes-panel">
+
+            <div className="reportes-titulo-con-cerrar">
+              <h3>Gráfico de ventas por producto</h3>
+
+              <button
+                type="button"
+                className="reportes-cerrar"
+                onClick={() => cerrarReporte("productos")}
+              >
+                ✕ Cerrar reporte
+              </button>
+            </div>
 
             <p className="reportes-descripcion">
               Comparación de las unidades vendidas por cada producto
@@ -619,10 +676,14 @@ async function generarReporteCanales() {
             </p>
 
             {productos.length > 0 ? (
-              <div style={{ width: "100%", height: Math.max(280, productos.length * 65) }}>
 
+              <div
+                style={{
+                  width: "100%",
+                  height: Math.max(280, productos.length * 65)
+                }}
+              >
                 <ResponsiveContainer width="100%" height="100%">
-
                   <BarChart
                     data={productos}
                     layout="vertical"
@@ -633,7 +694,6 @@ async function generarReporteCanales() {
                       bottom: 10
                     }}
                   >
-
                     <CartesianGrid strokeDasharray="3 3" />
 
                     <XAxis
@@ -651,9 +711,7 @@ async function generarReporteCanales() {
                     <Tooltip
                       cursor={{ fill: "transparent" }}
                       content={({ active, payload }) => {
-
                         if (active && payload && payload.length > 0) {
-
                           const producto = payload[0].payload;
 
                           return (
@@ -664,7 +722,6 @@ async function generarReporteCanales() {
                               padding: "12px 15px",
                               boxShadow: "0 4px 12px rgba(0,0,0,0.10)"
                             }}>
-
                               <strong style={{
                                 display: "block",
                                 marginBottom: "8px",
@@ -693,7 +750,6 @@ async function generarReporteCanales() {
                                   {formatoMoneda(producto.TotalGenerado)}
                                 </strong>
                               </p>
-
                             </div>
                           );
                         }
@@ -709,24 +765,22 @@ async function generarReporteCanales() {
                       maxBarSize={35}
                       radius={[0, 6, 6, 0]}
                     />
-
                   </BarChart>
-
                 </ResponsiveContainer>
-
               </div>
+
             ) : (
+
               <p className="reportes-tabla-vacio">
                 No hay productos vendidos para representar en el gráfico.
               </p>
+
             )}
 
           </section>
 
+          {/* DETALLE DE PRODUCTOS */}
 
-          </section>
-
-          {/* GRÁFICO DE PRODUCTOS */}
           <section className="reportes-panel">
 
             <h3>Detalle de ventas por producto</h3>
@@ -736,7 +790,6 @@ async function generarReporteCanales() {
             </p>
 
             <div className="reportes-tabla-contenedor">
-
               <table className="reportes-tabla">
 
                 <thead>
@@ -750,7 +803,6 @@ async function generarReporteCanales() {
                 </thead>
 
                 <tbody>
-
                   {productos.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="reportes-tabla-vacio">
@@ -760,207 +812,201 @@ async function generarReporteCanales() {
                   ) : (
                     productos.map((producto) => (
                       <tr key={producto.IdProducto}>
-
                         <td>{producto.IdProducto}</td>
-
                         <td>{producto.NombreProducto}</td>
-
-                        <td>
-                          {Number(producto.CantidadVendida || 0)}
-                        </td>
-
-                        <td>
-                          {Number(producto.NumeroVentas || 0)}
-                        </td>
-
+                        <td>{Number(producto.CantidadVendida || 0)}</td>
+                        <td>{Number(producto.NumeroVentas || 0)}</td>
                         <td className="reportes-total">
                           {formatoMoneda(producto.TotalGenerado)}
                         </td>
-
                       </tr>
                     ))
                   )}
-
                 </tbody>
 
               </table>
-
             </div>
 
           </section>
+
         </>
       )}
 
-      {/* =====================================
-    REPORTE DE VENTAS POR CANAL
-===================================== */}
+      {/* GENERAR REPORTE POR CANAL */}
 
-<section className="reportes-panel">
+      <section className="reportes-panel">
 
-  <h3>Reporte de ventas por canal</h3>
+        <h3>Reporte de ventas por canal</h3>
 
-  <p className="reportes-descripcion">
-    Consulta la cantidad de ventas y los ingresos generados
-    según el canal de venta utilizado.
-  </p>
+        <p className="reportes-descripcion">
+          Consulta la cantidad de ventas y los ingresos generados
+          según el canal de venta utilizado.
+        </p>
 
-  <button
-    type="button"
-    className="reportes-generar"
-    onClick={generarReporteCanales}
-    disabled={cargandoCanales}
-  >
-    {cargandoCanales
-      ? "Generando..."
-      : "Generar reporte por canal"}
-  </button>
+        <button
+          type="button"
+          className="reportes-generar"
+          onClick={generarReporteCanales}
+          disabled={cargandoCanales}
+        >
+          {cargandoCanales
+            ? "Generando..."
+            : "Generar reporte por canal"}
+        </button>
 
-</section>
+      </section>
 
-{canales.length > 0 && (
-  <section className="reportes-panel">
+      {/* RESULTADOS POR CANAL */}
 
-    
-<h3>Gráfico de ventas por canal</h3>
+      {mostrarReporteCanales && (
 
-<p className="reportes-descripcion">
-  Comparación de la cantidad de ventas realizadas
-  según el canal de comercialización.
-</p>
+        <section className="reportes-panel">
 
-{canales.length > 0 ? (
-  <div style={{ width: "100%", height: 320 }}>
+          <div className="reportes-titulo-con-cerrar">
+            <h3>Gráfico de ventas por canal</h3>
 
-    <ResponsiveContainer width="100%" height="100%">
+            <button
+              type="button"
+              className="reportes-cerrar"
+              onClick={() => cerrarReporte("canales")}
+            >
+              ✕ Cerrar reporte
+            </button>
+          </div>
 
-      <BarChart
-        data={canales}
-        margin={{
-          top: 15,
-          right: 25,
-          left: 10,
-          bottom: 10
-        }}
-      >
+          <p className="reportes-descripcion">
+            Comparación de la cantidad de ventas realizadas
+            según el canal de comercialización.
+          </p>
 
-        <CartesianGrid strokeDasharray="3 3" />
+          {canales.length > 0 ? (
 
-        <XAxis
-          dataKey="CanalVenta"
-          tick={{ fontSize: 12 }}
-        />
+            <div style={{ width: "100%", height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={canales}
+                  margin={{
+                    top: 15,
+                    right: 25,
+                    left: 10,
+                    bottom: 10
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
 
-        <YAxis
-          allowDecimals={false}
-        />
+                  <XAxis
+                    dataKey="CanalVenta"
+                    tick={{ fontSize: 12 }}
+                  />
 
-        <Tooltip
-          cursor={{ fill: "transparent" }}
-          content={({ active, payload }) => {
+                  <YAxis allowDecimals={false} />
 
-            if (active && payload && payload.length > 0) {
+                  <Tooltip
+                    cursor={{ fill: "transparent" }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length > 0) {
+                        const canal = payload[0].payload;
 
-              const canal = payload[0].payload;
+                        return (
+                          <div style={{
+                            background: "#ffffff",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: "10px",
+                            padding: "12px 15px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.10)"
+                          }}>
+                            <strong style={{
+                              display: "block",
+                              marginBottom: "8px",
+                              color: "#263238"
+                            }}>
+                              {canal.CanalVenta}
+                            </strong>
 
-              return (
-                <div style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                  padding: "12px 15px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.10)"
-                }}>
+                            <p style={{ margin: "4px 0" }}>
+                              Cantidad de ventas:{" "}
+                              <strong>
+                                {Number(canal.CantidadVentas)}
+                              </strong>
+                            </p>
 
-                  <strong style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    color: "#263238"
-                  }}>
-                    {canal.CanalVenta}
-                  </strong>
+                            <p style={{ margin: "4px 0" }}>
+                              Total generado:{" "}
+                              <strong style={{ color: "#287a48" }}>
+                                {formatoMoneda(canal.TotalGenerado)}
+                              </strong>
+                            </p>
+                          </div>
+                        );
+                      }
 
-                  <p style={{ margin: "4px 0" }}>
-                    Cantidad de ventas:{" "}
-                    <strong>
-                      {Number(canal.CantidadVentas)}
-                    </strong>
-                  </p>
+                      return null;
+                    }}
+                  />
 
-                  <p style={{ margin: "4px 0" }}>
-                    Total generado:{" "}
-                    <strong style={{ color: "#287a48" }}>
-                      {formatoMoneda(canal.TotalGenerado)}
-                    </strong>
-                  </p>
+                  <Bar
+                    dataKey="CantidadVentas"
+                    name="Cantidad de ventas"
+                    fill="#3b82f6"
+                    maxBarSize={65}
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
 
-                </div>
-              );
-            }
+          ) : (
 
-            return null;
-          }}
-        />
+            <p className="reportes-tabla-vacio">
+              No hay ventas registradas por canal para representar en el gráfico.
+            </p>
 
-        <Bar
-          dataKey="CantidadVentas"
-          name="Cantidad de ventas"
-          fill="#3b82f6"
-          maxBarSize={65}
-          radius={[6, 6, 0, 0]}
-        />
+          )}
 
-      </BarChart>
+          {/* DETALLE POR CANAL */}
 
-    </ResponsiveContainer>
+          <h3>Detalle de ventas por canal</h3>
 
-  </div>
-) : (
-  <p className="reportes-tabla-vacio">
-    No hay ventas registradas por canal para representar en el gráfico.
-  </p>
-)}
+          <p className="reportes-descripcion">
+            Ventas completadas desde el {desde} hasta el {hasta}.
+          </p>
 
+          <div className="reportes-tabla-contenedor">
+            <table className="reportes-tabla">
 
-    <h3>Detalle de ventas por canal</h3>
+              <thead>
+                <tr>
+                  <th>Canal de venta</th>
+                  <th>Cantidad de ventas</th>
+                  <th>Total generado</th>
+                </tr>
+              </thead>
 
-    <p className="reportes-descripcion">
-      Ventas completadas desde el {desde} hasta el {hasta}.
-    </p>
+              <tbody>
+                {canales.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="reportes-tabla-vacio">
+                      No se encontraron ventas por canal en el período seleccionado.
+                    </td>
+                  </tr>
+                ) : (
+                  canales.map((canal) => (
+                    <tr key={canal.CanalVenta}>
+                      <td>{canal.CanalVenta}</td>
+                      <td>{Number(canal.CantidadVentas || 0)}</td>
+                      <td className="reportes-total">
+                        {formatoMoneda(canal.TotalGenerado)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
 
-    <div className="reportes-tabla-contenedor">
+            </table>
+          </div>
 
-      <table className="reportes-tabla">
-
-        <thead>
-          <tr>
-            <th>Canal de venta</th>
-            <th>Cantidad de ventas</th>
-            <th>Total generado</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {canales.map((canal) => (
-            <tr key={canal.CanalVenta}>
-              <td>{canal.CanalVenta}</td>
-
-              <td>
-                {Number(canal.CantidadVentas || 0)}
-              </td>
-
-              <td className="reportes-total">
-                {formatoMoneda(canal.TotalGenerado)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-
-      </table>
-
-    </div>
-
-  </section>
-)}
+        </section>
+      )}
 
     </main>
   );

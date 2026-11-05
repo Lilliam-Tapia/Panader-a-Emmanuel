@@ -302,3 +302,51 @@
     font-size: 25px;
   }
 }
+
+
+/* ENCABEZADO DEL GRÁFICO CON BOTÓN CERRAR */
+
+.reportes-titulo-con-cerrar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.reportes-titulo-con-cerrar h3 {
+  margin: 0;
+}
+
+/* BOTÓN CERRAR REPORTE */
+
+.reportes-cerrar {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reportes-cerrar:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.reportes-cerrar:active {
+  transform: scale(0.97);
+}
+
+/* ADAPTACIÓN PARA PANTALLAS PEQUEÑAS */
+
+@media (max-width: 600px) {
+  .reportes-titulo-con-cerrar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

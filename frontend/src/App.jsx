@@ -1,4 +1,16 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Home,
+  ShoppingCart,
+  Package,
+  Warehouse,
+  ReceiptText,
+  ChartNoAxesColumn,
+  LogOut,
+  Plus,
+} from 'lucide-react';
+
 import './App.css';
 
 import Login from './pages/Login.jsx';
@@ -31,6 +43,7 @@ function estadoLote(lote) {
   const vencimiento = new Date(
     `${String(lote.FechaVencimiento).slice(0, 10)}T00:00:00`
   );
+
   const hoy = new Date(`${fechaActual()}T00:00:00`);
   const dias = Math.ceil((vencimiento - hoy) / 86400000);
 
@@ -42,9 +55,11 @@ function estadoLote(lote) {
 
 export default function App() {
   const [sesion, setSesion] = useState(null);
+
   const rol = sesion?.usuario?.rol;
   const esAdministrador = rol === 'Administrador';
   const esVendedor = rol === 'Vendedor';
+
   const [seccion, setSeccion] = useState('inicio');
   const [productos, setProductos] = useState([]);
   const [lotes, setLotes] = useState([]);
@@ -54,21 +69,23 @@ export default function App() {
   const [productoEditando, setProductoEditando] = useState(null);
   const [busqueda, setBusqueda] = useState('');
 
- const cargarProductos = useCallback(async () => {
-  try {
-    const respuesta = await fetch(`${API}/catalogo`);
+  // Cargar productos
+  const cargarProductos = useCallback(async () => {
+    try {
+      const respuesta = await fetch(`${API}/catalogo`);
 
-    if (!respuesta.ok) {
-      throw new Error('No se pudieron consultar los productos.');
+      if (!respuesta.ok) {
+        throw new Error('No se pudieron consultar los productos.');
+      }
+
+      const datos = await respuesta.json();
+      setProductos(Array.isArray(datos) ? datos : []);
+    } catch (e) {
+      setError(e.message || 'Error al cargar los productos.');
     }
+  }, []);
 
-    const datos = await respuesta.json();
-    setProductos(Array.isArray(datos) ? datos : []);
-  } catch (e) {
-    setError(e.message || 'Error al cargar los productos.');
-  }
-}, []);
-
+  // Cargar lotes del inventario
   const cargarLotes = useCallback(async () => {
     try {
       const respuesta = await fetch(`${API}/lotes`);
@@ -84,23 +101,42 @@ export default function App() {
     }
   }, []);
 
+  // Actualizar información
   const actualizarDatos = useCallback(async () => {
     setCargando(true);
     setError('');
 
     try {
-      await Promise.all([cargarProductos(), cargarLotes()]);
+      await Promise.all([
+        cargarProductos(),
+        cargarLotes(),
+      ]);
     } finally {
       setCargando(false);
     }
   }, [cargarProductos, cargarLotes]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (sesion) {
       actualizarDatos();
     }
   }, [sesion, actualizarDatos]);
 
+  // Cerrar sesión
+  function cerrarSesion() {
+    localStorage.removeItem('token');
+
+    setSesion(null);
+    setSeccion('inicio');
+    setProductos([]);
+    setLotes([]);
+    setProductoEditando(null);
+    setMensaje('');
+    setError('');
+    setBusqueda('');
+  }
+
+  // Iniciar edición de producto
   function iniciarEdicion(producto) {
     setProductoEditando({
       IdProducto: producto.IdProducto,
@@ -113,6 +149,7 @@ export default function App() {
     setMensaje('');
   }
 
+  // Cambiar datos del producto
   function cambiarEdicion(campoOEvento, valor) {
     if (typeof campoOEvento === 'string') {
       setProductoEditando((anterior) =>
@@ -127,10 +164,13 @@ export default function App() {
     const { name, value } = campoOEvento.target;
 
     setProductoEditando((anterior) =>
-      anterior ? { ...anterior, [name]: value } : anterior
+      anterior
+        ? { ...anterior, [name]: value }
+        : anterior
     );
   }
 
+  // Guardar edición
   async function guardarEdicion(e) {
     e?.preventDefault();
 
@@ -186,6 +226,7 @@ export default function App() {
     }
   }
 
+  // Desactivar producto
   async function desactivarProducto(producto) {
     const confirmar = window.confirm(
       `¿Deseas desactivar "${producto.NombreProducto}"? Ya no aparecerá como producto activo.`
@@ -224,6 +265,7 @@ export default function App() {
     }
   }
 
+  // Estadísticas del sistema
   const totalProductos = productos.length;
 
   const totalUnidades = productos.reduce(
@@ -250,23 +292,25 @@ export default function App() {
     (lote) => estadoLote(lote) === 'Vigente'
   ).length;
 
+  // Menú principal
   const menuCompleto = [
-  { id: 'inicio', nombre: 'Inicio', icono: '⌂' },
-  { id: 'ventas', nombre: 'Ventas', icono: '🛒' },
-  { id: 'productos', nombre: 'Productos', icono: '📦' },
-  { id: 'inventario', nombre: 'Inventario', icono: '◈' },
-  { id: 'facturacion', nombre: 'Facturación', icono: '🧾' },
-  { id: 'reportes', nombre: 'Reportes', icono: '▥' },
-];
-const menu = menuCompleto.filter((item) => {
-  if (item.id === 'reportes') {
-    return esAdministrador;
-  }
+    { id: 'inicio', nombre: 'Inicio', icono: Home },
+    { id: 'ventas', nombre: 'Ventas', icono: ShoppingCart },
+    { id: 'productos', nombre: 'Productos', icono: Package },
+    { id: 'inventario', nombre: 'Inventario', icono: Warehouse },
+    { id: 'facturacion', nombre: 'Facturación', icono: ReceiptText },
+    { id: 'reportes', nombre: 'Reportes', icono: ChartNoAxesColumn },
+  ];
 
+  const menu = menuCompleto.filter((item) => {
+    if (item.id === 'reportes') {
+      return esAdministrador;
+    }
 
-  return true;
-});
+    return true;
+  });
 
+  // Cambiar de sección
   function cambiarSeccion(id) {
     setSeccion(id);
     setError('');
@@ -275,25 +319,28 @@ const menu = menuCompleto.filter((item) => {
     setProductoEditando(null);
   }
 
-   if (!sesion) {
-  return (
-    <Login
-      onLogin={(datos) => {
-        if (!datos?.token) {
-          setError('El servidor no devolvió un token de sesión.');
-          return;
-        }
+  // Mostrar inicio de sesión
+  if (!sesion) {
+    return (
+      <Login
+        onLogin={(datos) => {
+          if (!datos?.token) {
+            setError('El servidor no devolvió un token de sesión.');
+            return;
+          }
 
-        localStorage.setItem('token', datos.token);
-        setSesion(datos);
-      }}
-    />
-  );
-}
+          localStorage.setItem('token', datos.token);
+          setSesion(datos);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="app-container">
       <aside className="sidebar">
+
+        {/* Identidad del sistema */}
         <div className="sidebar-brand">
           <div className="brand-logo">PE</div>
 
@@ -305,114 +352,185 @@ const menu = menuCompleto.filter((item) => {
 
         <p className="sidebar-label">MENÚ PRINCIPAL</p>
 
+        {/* Navegación */}
         <nav className="sidebar-nav">
-          {menu.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`nav-item ${
-                seccion === item.id ? 'active' : ''
-              }`}
-              onClick={() => cambiarSeccion(item.id)}
-            >
-              <span className="nav-icon">{item.icono}</span>
-              <span>{item.nombre}</span>
-            </button>
-          ))}
+          {menu.map((item) => {
+            const Icono = item.icono;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`nav-item ${
+                  seccion === item.id ? 'active' : ''
+                }`}
+                onClick={() => cambiarSeccion(item.id)}
+              >
+                <span className="nav-icon">
+                  <Icono size={20} strokeWidth={1.8} />
+                </span>
+
+                <span>{item.nombre}</span>
+              </button>
+            );
+          })}
         </nav>
 
+        {/* Pie del menú y cierre de sesión */}
         <div className="sidebar-footer">
           <strong>Panadería Emmanuel</strong>
           <span>Sistema de ventas y facturación</span>
+
+          <button
+            type="button"
+            className="logout-button"
+            onClick={cerrarSesion}
+          >
+            <LogOut size={19} strokeWidth={1.8} />
+            <span>Cerrar sesión</span>
+          </button>
         </div>
+
       </aside>
 
       <main className="main-content">
+
+        {/* Encabezado */}
         <header className="topbar">
           <div>
             <h1>
               {menu.find((item) => item.id === seccion)?.nombre || 'Inicio'}
             </h1>
-          
           </div>
-
         </header>
 
+        {/* Mensaje de error */}
         {error && (
           <div className="alert alert-error" role="alert">
             {error}
-            <button type="button" onClick={() => setError('')}>
+
+            <button
+              type="button"
+              onClick={() => setError('')}
+            >
               ×
             </button>
           </div>
         )}
 
+        {/* Mensaje de éxito */}
         {mensaje && (
           <div className="alert alert-success" role="status">
             {mensaje}
-            <button type="button" onClick={() => setMensaje('')}>
+
+            <button
+              type="button"
+              onClick={() => setMensaje('')}
+            >
               ×
             </button>
           </div>
         )}
 
+        {/* MÓDULO INICIO */}
         {seccion === 'inicio' && (
           <section className="dashboard-section">
+
             <div className="welcome-panel">
               <div>
                 <span className="eyebrow">PANEL PRINCIPAL</span>
+
                 <h2>¡Bienvenido al sistema!</h2>
+
                 <p>
                   Administra los productos, revisa el inventario y controla
                   las existencias de Panadería Emmanuel.
                 </p>
               </div>
 
-              <div className="welcome-icon">🥖</div>
+              <div className="welcome-icon">
+                <Package size={36} strokeWidth={1.6} />
+              </div>
             </div>
 
+            {/* Tarjetas de estadísticas */}
             <div className="stats-grid">
+
               <div className="stat-card">
-                <span className="stat-label">Productos registrados</span>
+                <span className="stat-label">
+                  Productos registrados
+                </span>
+
                 <strong>{totalProductos}</strong>
-                <span className="stat-description">Productos activos</span>
+
+                <span className="stat-description">
+                  Productos activos
+                </span>
               </div>
 
               <div className="stat-card">
-                <span className="stat-label">Existencias totales</span>
+                <span className="stat-label">
+                  Existencias totales
+                </span>
+
                 <strong>{totalUnidades}</strong>
-                <span className="stat-description">Unidades disponibles</span>
+
+                <span className="stat-description">
+                  Unidades disponibles
+                </span>
               </div>
 
               <div className="stat-card">
-                <span className="stat-label">Stock bajo</span>
+                <span className="stat-label">
+                  Stock bajo
+                </span>
+
                 <strong>{stockBajo}</strong>
-                <span className="stat-description">Productos por revisar</span>
+
+                <span className="stat-description">
+                  Productos por revisar
+                </span>
               </div>
 
               <div className="stat-card">
-                <span className="stat-label">Lotes vencidos</span>
+                <span className="stat-label">
+                  Lotes vencidos
+                </span>
+
                 <strong>{lotesVencidos}</strong>
-                <span className="stat-description">Requieren atención</span>
+
+                <span className="stat-description">
+                  Requieren atención
+                </span>
               </div>
+
             </div>
 
+            {/* Accesos rápidos */}
             <div className="panel">
+
               <div className="panel-header">
                 <div>
                   <h2>Accesos rápidos</h2>
-                  <p>Selecciona el módulo que necesitas utilizar.</p>
+                  <p>
+                    Selecciona el módulo que necesitas utilizar.
+                  </p>
                 </div>
               </div>
 
               <div className="quick-actions">
+
                 <button
                   type="button"
                   className="quick-action"
                   onClick={() => cambiarSeccion('productos')}
                 >
-                  <span>＋</span>
+                  <span>
+                    <Plus size={22} />
+                  </span>
+
                   <strong>Registrar producto</strong>
+
                   <small>Ingresar un producto nuevo</small>
                 </button>
 
@@ -421,8 +539,12 @@ const menu = menuCompleto.filter((item) => {
                   className="quick-action"
                   onClick={() => cambiarSeccion('inventario')}
                 >
-                  <span>◈</span>
+                  <span>
+                    <Warehouse size={22} />
+                  </span>
+
                   <strong>Consultar inventario</strong>
+
                   <small>Revisar existencias y vencimientos</small>
                 </button>
 
@@ -431,80 +553,103 @@ const menu = menuCompleto.filter((item) => {
                   className="quick-action"
                   onClick={() => cambiarSeccion('ventas')}
                 >
-                  <span>🛒</span>
+                  <span>
+                    <ShoppingCart size={22} />
+                  </span>
+
                   <strong>Ventas</strong>
+
                   <small>Ir al módulo de ventas</small>
                 </button>
+
               </div>
             </div>
 
+            {/* Alertas de inventario */}
             <div className="panel">
+
               <div className="panel-header">
                 <div>
                   <h2>Alertas de inventario</h2>
-                  <p>Resumen del estado de los lotes registrados.</p>
+
+                  <p>
+                    Resumen del estado de los lotes registrados.
+                  </p>
                 </div>
               </div>
 
               <div className="alert-summary">
+
                 <div className="alert-summary-item">
                   <span className="status-dot dot-expired" />
+
                   Lotes vencidos
+
                   <strong>{lotesVencidos}</strong>
                 </div>
 
                 <div className="alert-summary-item">
                   <span className="status-dot dot-soon" />
+
                   Próximos a vencer
+
                   <strong>{lotesPorVencer}</strong>
                 </div>
 
                 <div className="alert-summary-item">
                   <span className="status-dot dot-valid" />
+
                   Lotes vigentes
+
                   <strong>{lotesVigentes}</strong>
                 </div>
+
               </div>
             </div>
+
           </section>
         )}
 
+        {/* MÓDULO PRODUCTOS */}
         {seccion === 'productos' && (
           <Productos onRegistrado={actualizarDatos} />
         )}
 
-        
-      {seccion === 'inventario' && (
-   <Inventario
-    esAdministrador={esAdministrador}
-    productos={productos}
-    lotes={lotes}
-    cargando={cargando}
-    actualizarDatos={actualizarDatos}
-    busqueda={busqueda}
-    setBusqueda={setBusqueda}
-    iniciarEdicion={iniciarEdicion}
-    desactivarProducto={desactivarProducto}
-    productoEditando={productoEditando}
-    setProductoEditando={setProductoEditando}
-    cambiarEdicion={cambiarEdicion}
-    guardarEdicion={guardarEdicion}
-   />
-    )}
-     {seccion === 'ventas' && (
-  <Ventas onVentaRegistrada={actualizarDatos} />
-)}
+        {/* MÓDULO INVENTARIO */}
+        {seccion === 'inventario' && (
+          <Inventario
+            esAdministrador={esAdministrador}
+            productos={productos}
+            lotes={lotes}
+            cargando={cargando}
+            actualizarDatos={actualizarDatos}
+            busqueda={busqueda}
+            setBusqueda={setBusqueda}
+            iniciarEdicion={iniciarEdicion}
+            desactivarProducto={desactivarProducto}
+            productoEditando={productoEditando}
+            setProductoEditando={setProductoEditando}
+            cambiarEdicion={cambiarEdicion}
+            guardarEdicion={guardarEdicion}
+          />
+        )}
 
-      
-{seccion === 'facturacion' && (
-  <Facturacion esAdministrador={esAdministrador} />
-)}
+        {/* MÓDULO VENTAS */}
+        {seccion === 'ventas' && (
+          <Ventas onVentaRegistrada={actualizarDatos} />
+        )}
 
-{seccion === 'reportes' && (
-  <Reportes />
-)}
- </main>
+        {/* MÓDULO FACTURACIÓN */}
+        {seccion === 'facturacion' && (
+          <Facturacion esAdministrador={esAdministrador} />
+        )}
+
+        {/* MÓDULO REPORTES */}
+        {seccion === 'reportes' && (
+          <Reportes />
+        )}
+
+      </main>
     </div>
   );
 }
-
