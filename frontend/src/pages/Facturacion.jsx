@@ -1312,25 +1312,38 @@ export default function Facturacion({ esAdministrador = false }) {
             <div className="facturacion-tabla-contenedor">
               <table className="facturacion-tabla">
                 <thead>
-                  <tr>
-                    <th>Número de comprobante</th>
-                    <th>Venta</th>
-                    <th>Fecha de emisión</th>
-                    <th>Total</th>
-                    <th>Acción</th>
-                  </tr>
-                </thead>
+  <tr>
+    <th>Número de comprobante</th>
+    <th>Venta</th>
+    <th>Fecha de emisión</th>
+    <th>Estado</th>
+    <th>Total</th>
+    <th>Acción</th>
+  </tr>
+</thead>
 
                 <tbody>
                   {facturasFiltradas.map((factura) => (
                     <tr key={factura.IdFactura}>
                       <td>{factura.NumeroFactura}</td>
 
-                      <td>#{factura.IdVenta}</td>
+<td>#{factura.IdVenta}</td>
 
-                      <td>{formatoFecha(factura.FechaEmision)}</td>
+<td>{formatoFecha(factura.FechaEmision)}</td>
 
-                      <td>{formatoMoneda(factura.Total)}</td>
+<td>
+  <span
+    className={`facturacion-estado ${
+      factura.EstadoFactura === "Anulada"
+        ? "anulada"
+        : "vigente"
+    }`}
+  >
+    {factura.EstadoFactura || "Vigente"}
+  </span>
+</td>
+
+<td>{formatoMoneda(factura.Total)}</td>
 
                       <td>
                         <button
@@ -1420,10 +1433,42 @@ export default function Facturacion({ esAdministrador = false }) {
                 {detalleComprobante.venta.MetodoPago}
               </p>
 
+
               <p>
                 <strong>Canal:</strong>{" "}
                 {detalleComprobante.venta.CanalVenta}
               </p>
+
+<p>
+  <strong>Estado de la factura:</strong>{" "}
+  <span
+    className={`facturacion-estado ${
+      detalleComprobante.factura.EstadoFactura === "Anulada"
+        ? "anulada"
+        : "vigente"
+    }`}
+  >
+    {detalleComprobante.factura.EstadoFactura || "Vigente"}
+  </span>
+</p>
+
+{detalleComprobante.factura.EstadoFactura === "Anulada" && (
+  <>
+    <p>
+      <strong>Fecha de anulación:</strong>{" "}
+      {formatoFecha(
+        detalleComprobante.factura.FechaAnulacion
+      )}
+    </p>
+
+    <p className="facturacion-motivo-anulacion">
+      <strong>Motivo de anulación:</strong>{" "}
+      {detalleComprobante.factura.MotivoAnulacion ||
+        "No se registró un motivo."}
+    </p>
+  </>
+)}
+
             </div>
 
             <h3>Productos vendidos</h3>

@@ -675,3 +675,37 @@
     display: none !important;
   }
 }
+
+/* Estado de los comprobantes */
+.facturacion-estado {
+  display: inline-block;
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.facturacion-estado.vigente {
+  background: #e5f5e9;
+  color: #26733b;
+  border: 1px solid #bde2c5;
+}
+
+.facturacion-estado.anulada {
+  background: #fde8e8;
+  color: #b42323;
+  border: 1px solid #f3bebe;
+}
+
+/* Motivo de anulación en el detalle */
+.facturacion-motivo-anulacion {
+  padding: 12px;
+  margin-top: 10px !important;
+  border-left: 4px solid #c44747;
+  border-radius: 5px;
+  background: #fff1f1;
+  color: #8f2929;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}

@@ -393,14 +393,17 @@ router.get(
         .input('Busqueda', sql.VarChar(40), busqueda)
         .query(`
           SELECT
-            F.IdFactura,
-            F.IdVenta,
-            F.NumeroFactura,
-            F.FechaEmision,
-            V.FechaVenta,
-            V.MetodoPago,
-            V.CanalVenta,
-            V.Total
+    F.IdFactura,
+    F.IdVenta,
+    F.NumeroFactura,
+    F.FechaEmision,
+    F.EstadoFactura,
+    F.MotivoAnulacion,
+    F.FechaAnulacion,
+    V.FechaVenta,
+    V.MetodoPago,
+    V.CanalVenta,
+    V.Total
           FROM dbo.Facturas AS F
           INNER JOIN dbo.Ventas AS V
             ON V.IdVenta = F.IdVenta
@@ -453,14 +456,17 @@ router.get(
         .input('IdFactura', sql.Int, idFactura)
         .query(`
           SELECT
-            F.IdFactura,
-            F.NumeroFactura,
-            F.FechaEmision,
-            V.IdVenta,
-            V.FechaVenta,
-            V.MetodoPago,
-            V.CanalVenta,
-            V.Total
+    F.IdFactura,
+    F.NumeroFactura,
+    F.FechaEmision,
+    F.EstadoFactura,
+    F.MotivoAnulacion,
+    F.FechaAnulacion,
+    V.IdVenta,
+    V.FechaVenta,
+    V.MetodoPago,
+    V.CanalVenta,
+    V.Total
           FROM dbo.Facturas AS F
           INNER JOIN dbo.Ventas AS V
             ON V.IdVenta = F.IdVenta
@@ -494,10 +500,13 @@ router.get(
 
       return res.json({
         factura: {
-          IdFactura: datos.IdFactura,
-          NumeroFactura: datos.NumeroFactura,
-          FechaEmision: datos.FechaEmision
-        },
+    IdFactura: datos.IdFactura,
+    NumeroFactura: datos.NumeroFactura,
+    FechaEmision: datos.FechaEmision,
+    EstadoFactura: datos.EstadoFactura,
+    MotivoAnulacion: datos.MotivoAnulacion,
+    FechaAnulacion: datos.FechaAnulacion
+},
 
         venta: {
           IdVenta: datos.IdVenta,
@@ -519,6 +528,247 @@ router.get(
     }
   }
 );
+
+// =============================================
+// ANULAR FACTURA Y DEVOLVER PRODUCTOS AL INVENTARIO
+// PATCH /api/facturas/:idFactura/anular
+// Guarda el motivo y la fecha de anulación.
+// =============================================
+
+router.patch(
+  '/:idFactura/anular',
+  verificarToken,
+  async (req, res) => {
+
+    const idFactura = Number(req.params.idFactura);
+    const motivo = String(req.body?.MotivoAnulacion || '').trim();
+
+    if (!Number.isInteger(idFactura) || idFactura <= 0) {
+      return res.status(400).json({
+        mensaje: 'El identificador de la factura no es válido.'
+      });
+    }
+
+    if (motivo.length < 5 || motivo.length > 250) {
+      return res.status(400).json({
+        mensaje: 'El motivo debe tener entre 5 y 250 caracteres.'
+      });
+    }
+
+    let transaction;
+
+    try {
+      const pool = await conectarBD();
+
+      transaction = new sql.Transaction(pool);
+
+      await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+
+      // 1. Buscar y bloquear la factura y su venta.
+      const facturaResultado = await new sql.Request(transaction)
+        .input('IdFactura', sql.Int, idFactura)
+        .query(`
+          SELECT
+            F.IdFactura,
+            F.NumeroFactura,
+            F.EstadoFactura,
+            V.IdVenta,
+            V.Estado AS EstadoVenta
+          FROM dbo.Facturas AS F WITH (UPDLOCK, HOLDLOCK)
+          INNER JOIN dbo.Ventas AS V WITH (UPDLOCK, HOLDLOCK)
+            ON V.IdVenta = F.IdVenta
+          WHERE F.IdFactura = @IdFactura;
+        `);
+
+      if (facturaResultado.recordset.length === 0) {
+        const error = new Error(
+          'No se encontró la factura que deseas anular.'
+        );
+        error.status = 404;
+        throw error;
+      }
+
+      const factura = facturaResultado.recordset[0];
+
+      if (factura.EstadoFactura !== 'Vigente') {
+        const error = new Error(
+          'Esta factura ya se encuentra anulada.'
+        );
+        error.status = 409;
+        throw error;
+      }
+
+      if (factura.EstadoVenta !== 'Completada') {
+        const error = new Error(
+          'La venta relacionada no se encuentra completada.'
+        );
+        error.status = 409;
+        throw error;
+      }
+
+      const idVenta = factura.IdVenta;
+
+      // 2. Obtener los detalles originales de la venta.
+      const detalleResultado = await new sql.Request(transaction)
+        .input('IdVenta', sql.Int, idVenta)
+        .query(`
+          SELECT
+            IdDetalle,
+            IdProducto,
+            IdLote,
+            Cantidad
+          FROM dbo.DetalleVenta WITH (UPDLOCK, HOLDLOCK)
+          WHERE IdVenta = @IdVenta
+          ORDER BY IdDetalle;
+        `);
+
+      const detalles = detalleResultado.recordset;
+
+      if (detalles.length === 0) {
+        const error = new Error(
+          'La venta no tiene productos registrados para devolver.'
+        );
+        error.status = 400;
+        throw error;
+      }
+
+      // 3. Devolver cada cantidad al lote del que fue descontada.
+      const cantidadesPorProducto = new Map();
+
+      for (const detalle of detalles) {
+
+        const actualizarLote = await new sql.Request(transaction)
+          .input('IdLote', sql.Int, detalle.IdLote)
+          .input('IdProducto', sql.Int, detalle.IdProducto)
+          .input('Cantidad', sql.Int, detalle.Cantidad)
+          .query(`
+            UPDATE dbo.LotesInventario
+            SET CantidadDisponible =
+                CantidadDisponible + @Cantidad
+            OUTPUT INSERTED.IdLote
+            WHERE IdLote = @IdLote
+              AND IdProducto = @IdProducto
+              AND CantidadDisponible + @Cantidad <= CantidadInicial;
+          `);
+
+        if (actualizarLote.recordset.length !== 1) {
+          throw new Error(
+            'No se pudo devolver correctamente un producto a su lote de inventario.'
+          );
+        }
+
+        const idProducto = Number(detalle.IdProducto);
+        const cantidad = Number(detalle.Cantidad);
+
+        cantidadesPorProducto.set(
+          idProducto,
+          (cantidadesPorProducto.get(idProducto) || 0) + cantidad
+        );
+      }
+
+      // 4. Actualizar las existencias generales.
+      for (const [idProducto, cantidad] of cantidadesPorProducto) {
+
+        const actualizarInventario = await new sql.Request(transaction)
+          .input('IdProducto', sql.Int, idProducto)
+          .input('Cantidad', sql.Int, cantidad)
+          .query(`
+            UPDATE dbo.Inventario
+            SET Existencia = Existencia + @Cantidad,
+                FechaActualizacion = SYSDATETIME()
+            OUTPUT INSERTED.IdProducto
+            WHERE IdProducto = @IdProducto;
+          `);
+
+        if (actualizarInventario.recordset.length !== 1) {
+          throw new Error(
+            'No se pudo actualizar la existencia general de un producto.'
+          );
+        }
+      }
+
+      // 5. Cambiar el estado de la venta.
+      const ventaActualizada = await new sql.Request(transaction)
+        .input('IdVenta', sql.Int, idVenta)
+        .query(`
+          UPDATE dbo.Ventas
+          SET Estado = 'Anulada'
+          OUTPUT
+            INSERTED.IdVenta,
+            INSERTED.Estado
+          WHERE IdVenta = @IdVenta
+            AND Estado = 'Completada';
+        `);
+
+      if (ventaActualizada.recordset.length !== 1) {
+        throw new Error(
+          'No se pudo actualizar el estado de la venta.'
+        );
+      }
+
+      // 6. Guardar el estado, motivo y fecha en Facturas.
+      const facturaActualizada = await new sql.Request(transaction)
+        .input('IdFactura', sql.Int, idFactura)
+        .input('MotivoAnulacion', sql.VarChar(250), motivo)
+        .query(`
+          UPDATE dbo.Facturas
+          SET
+            EstadoFactura = 'Anulada',
+            MotivoAnulacion = @MotivoAnulacion,
+            FechaAnulacion = SYSDATETIME()
+          OUTPUT
+            INSERTED.IdFactura,
+            INSERTED.NumeroFactura,
+            INSERTED.EstadoFactura,
+            INSERTED.MotivoAnulacion,
+            INSERTED.FechaAnulacion
+          WHERE IdFactura = @IdFactura
+            AND EstadoFactura = 'Vigente';
+        `);
+
+      if (facturaActualizada.recordset.length !== 1) {
+        throw new Error(
+          'No se pudo guardar la anulación de la factura.'
+        );
+      }
+
+      const facturaGuardada = facturaActualizada.recordset[0];
+      const ventaGuardada = ventaActualizada.recordset[0];
+
+      // 7. Confirmar todas las operaciones.
+      await transaction.commit();
+      transaction = null;
+
+      return res.json({
+        mensaje: 'Factura anulada correctamente.',
+        factura: facturaGuardada,
+        venta: ventaGuardada
+      });
+
+    } catch (error) {
+
+      if (transaction) {
+        try {
+          await transaction.rollback();
+        } catch (errorRollback) {
+          console.error(
+            'Error al revertir la anulación:',
+            errorRollback
+          );
+        }
+      }
+
+      console.error('Error al anular factura:', error);
+
+      return res.status(error.status || 500).json({
+        mensaje: error.status
+          ? error.message
+          : 'No se pudo anular la factura. No se guardaron los cambios.'
+      });
+    }
+  }
+);
+
 
 // =============================================
 // EDITAR FACTURA Y DATOS DE SU VENTA
@@ -830,11 +1080,12 @@ router.put('/:idFactura/editar', verificarToken, async (req, res) => {
       .input('Total', sql.Decimal(12, 2), total)
       .query(`
         UPDATE dbo.Ventas
-        SET MetodoPago = @MetodoPago,
-            CanalVenta = @CanalVenta,
-            Total = @Total
-        WHERE IdVenta = @IdVenta
-          AND Estado = 'Completada';
+SET MetodoPago = @MetodoPago,
+    CanalVenta = @CanalVenta,
+    Total = @Total,
+    FechaUltimaEdicion = SYSDATETIME()
+WHERE IdVenta = @IdVenta
+  AND Estado = 'Completada';
       `);
 
     // 5. Leer los detalles ya actualizados para devolverlos al frontend.

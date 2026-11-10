@@ -11,6 +11,8 @@ export default function Ventas({ onVentaRegistrada }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
+  // Notificación flotante de operaciones exitosas.
+const [notificacion, setNotificacion] = useState("");
   const [metodoPago, setMetodoPago] = useState("Efectivo");
   const [canalVenta, setCanalVenta] = useState("Presencial");
   // Venta registrada que todavía puede generar su comprobante.
@@ -58,6 +60,16 @@ const [generandoComprobante, setGenerandoComprobante] = useState(false);
   useEffect(() => {
     cargarProductos();
   }, [cargarProductos]);
+  // Ocultar automáticamente la notificación después de 4.5 segundos.
+useEffect(() => {
+  if (!notificacion) return;
+
+  const temporizador = window.setTimeout(() => {
+    setNotificacion("");
+  }, 4500);
+
+  return () => window.clearTimeout(temporizador);
+}, [notificacion]);
 
   function productoActivo(producto) {
     return (
@@ -623,10 +635,13 @@ async function guardarEdicionFactura(evento) {
 }));
  
     setEditandoFactura(false);
-    setError('');
-    // Este texto se muestra en el aviso de estado que ya existe en Ventas.jsx.
-    setMensaje('Factura editada correctamente.');
- 
+setError('');
+
+setMensaje('');
+
+setNotificacion(
+  'La factura se editó correctamente.'
+);
     // Actualizar las existencias visibles en el módulo y en el resto de la aplicación.
     await cargarProductos(false);
  
@@ -746,7 +761,12 @@ async function anularFactura() {
     setError('');
 
     // Mostrar el mensaje de confirmación.
-    setMensaje('Factura anulada correctamente.');
+    // Mostrar notificación flotante de anulación exitosa.
+setMensaje('');
+
+setNotificacion(
+  'La factura se anuló correctamente.'
+);
 
     // Actualizar las existencias de los productos.
     await cargarProductos(false);
@@ -782,6 +802,33 @@ async function anularFactura() {
  
   return (
     <main className="ventas-page">
+
+{notificacion && (
+  <div
+    className="ventas-toast"
+    role="status"
+    aria-live="polite"
+  >
+    <span className="ventas-toast-icon">
+      ✓
+    </span>
+
+    <div className="ventas-toast-contenido">
+      <strong>¡Operación exitosa!</strong>
+      <p>{notificacion}</p>
+    </div>
+
+    <button
+      type="button"
+      className="ventas-toast-cerrar"
+      onClick={() => setNotificacion("")}
+      aria-label="Cerrar notificación"
+    >
+      ×
+    </button>
+  </div>
+)}
+
       <header className="ventas-header">
         <div>
           <h1>Nueva venta</h1>

@@ -1044,4 +1044,110 @@
 }
 
 
+/* =========================================
+   NOTIFICACIONES FLOTANTES DE VENTAS
+========================================= */
+
+.ventas-toast {
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  z-index: 1500;
+
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  width: min(390px, calc(100vw - 32px));
+  padding: 17px;
+
+  background: #ffffff;
+  border: 1px solid #b9dfc3;
+  border-left: 5px solid #2e9d50;
+  border-radius: 12px;
+
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+
+  animation: ventasToastEntrada 0.3s ease-out;
+}
+
+.ventas-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 34px;
+  height: 34px;
+
+  border-radius: 50%;
+
+  background: #e5f6e9;
+  color: #25833f;
+
+  font-size: 21px;
+  font-weight: bold;
+}
+
+.ventas-toast-contenido {
+  flex: 1;
+}
+
+.ventas-toast-contenido strong {
+  display: block;
+  color: #246d39;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.ventas-toast-contenido p {
+  margin: 0;
+  color: #4b5d50;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ventas-toast-cerrar {
+  border: none;
+  background: transparent;
+  color: #777777;
+
+  font-size: 24px;
+  cursor: pointer;
+
+  padding: 2px 5px;
+  align-self: flex-start;
+}
+
+.ventas-toast-cerrar:hover {
+  color: #222222;
+}
+
+@keyframes ventasToastEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .ventas-toast {
+    top: 12px;
+    right: 12px;
+    width: calc(100vw - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ventas-toast {
+    animation: none;
+  }
+}
+
 
