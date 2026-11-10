@@ -392,7 +392,7 @@ export default function Facturacion() {
           ) : (
             <div className="facturacion-vacio">
               <div className="facturacion-icono">🧾</div>
-              <h3>Comprobante de venta</h3>
+              <h3 id="titulo-detalle-comprobante">Comprobante de venta</h3>
               <p>
                 Selecciona una venta de la lista para consultar sus
                 productos y generar el comprobante.
@@ -459,6 +459,48 @@ function formatoFecha(fecha) {
 
 function formatoMoneda(valor) {
   return `C$ ${Number(valor || 0).toFixed(2)}`;
+}
+
+// Agrupa las filas del mismo producto cuando la venta lo descontó
+// desde varios lotes. Conserva el subtotal y calcula un precio promedio
+// ponderado para que Cantidad x Precio mostrado sea coherente con el total.
+function agruparProductos(productos = []) {
+  const agrupados = new Map();
+
+  for (const producto of productos) {
+    const idProducto = Number(producto.IdProducto);
+    const cantidad = Number(producto.Cantidad || 0);
+    const precio = Number(producto.PrecioUnitario || 0);
+    const subtotal = Number(
+      producto.Subtotal ?? cantidad * precio
+    );
+    const clave = Number.isFinite(idProducto)
+      ? `producto-${idProducto}`
+      : `detalle-${producto.IdDetalle}`;
+
+    if (!agrupados.has(clave)) {
+      agrupados.set(clave, {
+        IdProducto: idProducto,
+        IdDetalle: producto.IdDetalle,
+        NombreProducto: producto.NombreProducto,
+        Cantidad: 0,
+        Subtotal: 0
+      });
+    }
+
+    const actual = agrupados.get(clave);
+    actual.Cantidad += cantidad;
+    actual.Subtotal += subtotal;
+  }
+
+  return Array.from(agrupados.values()).map((producto) => ({
+    ...producto,
+    Cantidad: Number(producto.Cantidad),
+    Subtotal: Number(producto.Subtotal.toFixed(2)),
+    PrecioUnitario: producto.Cantidad > 0
+      ? Number((producto.Subtotal / producto.Cantidad).toFixed(2))
+      : 0
+  }));
 }
 
 
@@ -623,6 +665,18 @@ export default function Facturacion({ esAdministrador = false }) {
     }
   }, [cargarPendientes, cargarFacturas, esAdministrador]);
 
+  // Los avisos flotantes desaparecen automáticamente después de unos segundos.
+  useEffect(() => {
+    if (!error && !mensaje) return undefined;
+
+    const temporizador = window.setTimeout(() => {
+      setError("");
+      setMensaje("");
+    }, 4500);
+
+    return () => window.clearTimeout(temporizador);
+  }, [error, mensaje]);
+
   // =========================================
   // FILTRAR COMPROBANTES
   // =========================================
@@ -704,7 +758,7 @@ export default function Facturacion({ esAdministrador = false }) {
       setDetalleVenta(null);
 
       setMensaje(
-        `Comprobante ${datos.factura.NumeroFactura} generado correctamente.`
+        `Factura ${datos.factura.NumeroFactura} generada correctamente.`
       );
 
       await cargarPendientes();
@@ -862,7 +916,7 @@ export default function Facturacion({ esAdministrador = false }) {
             "Subtotal"
           ]],
 
-          body: comprobante.productos.map((producto) => [
+          body: agruparProductos(comprobante.productos).map((producto) => [
             producto.NombreProducto,
             String(producto.Cantidad),
             formatoMoneda(producto.PrecioUnitario),
@@ -998,15 +1052,27 @@ export default function Facturacion({ esAdministrador = false }) {
         </button>
       </header>
 
-      {error && (
-        <div className="facturacion-error" role="alert">
-          {error}
-        </div>
-      )}
-
-      {mensaje && (
-        <div className="facturacion-mensaje" role="status">
-          {mensaje}
+      {(error || mensaje) && (
+        <div
+          className={`facturacion-toast ${error ? "error" : "success"}`}
+          role={error ? "alert" : "status"}
+          aria-live="polite"
+        >
+          <span className="facturacion-toast-icon" aria-hidden="true">
+            {error ? "!" : "✓"}
+          </span>
+          <span className="facturacion-toast-text">{error || mensaje}</span>
+          <button
+            type="button"
+            className="facturacion-toast-cerrar"
+            aria-label="Cerrar notificación"
+            onClick={() => {
+              setError("");
+              setMensaje("");
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -1092,11 +1158,22 @@ export default function Facturacion({ esAdministrador = false }) {
       )}
 
       {detalleVenta && (
-        <section className="facturacion-panel facturacion-detalle">
+        <div
+          className="facturacion-modal-overlay"
+          role="presentation"
+          onClick={() => setDetalleVenta(null)}
+        >
+        <section
+          className="facturacion-panel facturacion-detalle facturacion-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-detalle-venta"
+          onClick={(evento) => evento.stopPropagation()}
+        >
 
           <div className="facturacion-detalle-encabezado">
             <div>
-              <h3>
+              <h3 id="titulo-detalle-venta">
                 Detalle de la venta #{detalleVenta.venta.IdVenta}
               </h3>
 
@@ -1145,8 +1222,8 @@ export default function Facturacion({ esAdministrador = false }) {
               </thead>
 
               <tbody>
-                {detalleVenta.productos.map((producto) => (
-                  <tr key={producto.IdDetalle}>
+                {agruparProductos(detalleVenta.productos).map((producto) => (
+                  <tr key={producto.IdProducto ?? producto.IdDetalle}>
                     <td>{producto.NombreProducto}</td>
                     <td>{producto.Cantidad}</td>
                     <td>{formatoMoneda(producto.PrecioUnitario)}</td>
@@ -1176,6 +1253,7 @@ export default function Facturacion({ esAdministrador = false }) {
               : "Generar comprobante"}
           </button>
         </section>
+        </div>
       )}
 
       {/* =====================================
@@ -1278,11 +1356,22 @@ export default function Facturacion({ esAdministrador = false }) {
       ====================================== */}
 
       {detalleComprobante && (
-        <section className="facturacion-panel facturacion-detalle">
+        <div
+          className="facturacion-modal-overlay"
+          role="presentation"
+          onClick={() => setDetalleComprobante(null)}
+        >
+        <section
+          className="facturacion-panel facturacion-detalle facturacion-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-detalle-comprobante"
+          onClick={(evento) => evento.stopPropagation()}
+        >
 
           <div className="facturacion-detalle-encabezado">
             <div>
-              <h3>Comprobante de venta</h3>
+              <h3 id="titulo-detalle-comprobante">Comprobante de venta</h3>
 
               <p>
                 {detalleComprobante.factura.NumeroFactura}
@@ -1351,8 +1440,8 @@ export default function Facturacion({ esAdministrador = false }) {
                 </thead>
 
                 <tbody>
-                  {detalleComprobante.productos.map((producto) => (
-                    <tr key={producto.IdDetalle}>
+                  {agruparProductos(detalleComprobante.productos).map((producto) => (
+                    <tr key={producto.IdProducto ?? producto.IdDetalle}>
                       <td>{producto.NombreProducto}</td>
                       <td>{producto.Cantidad}</td>
                       <td>{formatoMoneda(producto.PrecioUnitario)}</td>
@@ -1392,8 +1481,10 @@ export default function Facturacion({ esAdministrador = false }) {
             </div>
           </div>
         </section>
+        </div>
       )}
 
     </section>
   );
 }
+

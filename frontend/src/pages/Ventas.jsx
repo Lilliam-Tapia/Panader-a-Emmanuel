@@ -1,5 +1,4 @@
-﻿
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import "../style/Ventas.css";
 
 const API = "/api";
@@ -16,6 +15,16 @@ export default function Ventas({ onVentaRegistrada }) {
   const [canalVenta, setCanalVenta] = useState("Presencial");
   // Venta registrada que todavía puede generar su comprobante.
 const [ventaRegistrada, setVentaRegistrada] = useState(null);
+
+// Estado del formulario para editar una factura
+const [editandoFactura, setEditandoFactura] = useState(false);
+const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+const [formularioEdicion, setFormularioEdicion] = useState({
+  MetodoPago: 'Efectivo',
+  CanalVenta: 'Presencial',
+  productos: []
+});
+const [anulandoFactura, setAnulandoFactura] = useState(false);
 
 // Comprobante generado.
 const [comprobanteGenerado, setComprobanteGenerado] = useState(null);
@@ -133,7 +142,7 @@ const [generandoComprobante, setGenerandoComprobante] = useState(false);
     setMensaje("");
 
     if (valor === "") {
-      setError("La cantidad no puede quedar vací­a.");
+      setError("La cantidad no puede quedar vací¬a.");
       return;
     }
 
@@ -183,6 +192,13 @@ const [generandoComprobante, setGenerandoComprobante] = useState(false);
     const subtotal = Number(item.Precio) * item.cantidad;
     return suma + (Number.isFinite(subtotal) ? subtotal : 0);
   }, 0);
+
+  // Total que se muestra en el formulario de edición antes de guardar.
+const totalEdicion = formularioEdicion.productos.reduce(
+  (suma, item) =>
+    suma + Number(item.PrecioUnitario) * Number(item.Cantidad),
+  0
+);
 
   const productosFiltrados = productos.filter((producto) => {
     const nombre = producto.NombreProducto || "";
@@ -360,7 +376,13 @@ setMensaje(
         );
       }
 
-      setComprobanteGenerado(resultado);
+      setComprobanteGenerado({
+  ...resultado,
+
+  productos: agruparProductosFactura(
+    resultado.productos || []
+  )
+});
 
       setMensaje(
         `Comprobante ${resultado.factura.NumeroFactura} generado correctamente.`
@@ -382,8 +404,382 @@ setMensaje(
       "Comprobante ocultado correctamente. Sigue guardado en el sistema."
     );
   }
+  // =============================================
+// ABRIR EL FORMULARIO DE EDICIÓN
+// =============================================
 
-  
+function abrirEdicionFactura() {
+
+  if (!comprobanteGenerado?.factura?.IdFactura) {
+    setError('No se encontró la factura que deseas editar.');
+    return;
+  }
+
+  if (
+    (comprobanteGenerado.factura.EstadoFactura || 'Vigente') !== 'Vigente'
+  ) {
+    setError('No se puede editar una factura anulada.');
+    return;
+  }
+
+  setError('');
+  setMensaje('');
+
+  // Agrupar los registros que pertenecen
+  // al mismo producto, aunque provengan de lotes diferentes.
+  const productosAgrupados = agruparProductosFactura(
+    comprobanteGenerado.productos || []
+  );
+
+  setFormularioEdicion({
+
+    MetodoPago: comprobanteGenerado.venta.MetodoPago,
+
+    CanalVenta: comprobanteGenerado.venta.CanalVenta,
+
+    productos: productosAgrupados.map(producto => ({
+      IdProducto: producto.IdProducto,
+      NombreProducto: producto.NombreProducto,
+      Cantidad: producto.Cantidad,
+      PrecioUnitario: producto.PrecioUnitario
+    }))
+
+  });
+
+  setEditandoFactura(true);
+}
+
+// =============================================
+// AGRUPAR PRODUCTOS DE UNA FACTURA
+// Un mismo producto puede estar distribuido
+// en diferentes lotes de inventario.
+// En pantalla se mostrará una sola fila.
+// =============================================
+
+function agruparProductosFactura(productos = []) {
+
+  const agrupados = new Map();
+
+  for (const producto of productos) {
+
+    const idProducto = Number(producto.IdProducto);
+    const cantidad = Number(producto.Cantidad);
+    const precio = Number(producto.PrecioUnitario);
+
+    const subtotal = Number(
+      producto.Subtotal ?? cantidad * precio
+    );
+
+    if (!agrupados.has(idProducto)) {
+
+      agrupados.set(idProducto, {
+        IdDetalle: producto.IdDetalle,
+        IdProducto: idProducto,
+        NombreProducto: producto.NombreProducto,
+        Cantidad: cantidad,
+        PrecioUnitario: precio,
+        Subtotal: subtotal
+      });
+
+    } else {
+
+      const existente = agrupados.get(idProducto);
+
+      existente.Cantidad += cantidad;
+      existente.Subtotal += subtotal;
+
+    }
+  }
+
+  return Array.from(agrupados.values()).map(producto => ({
+    ...producto,
+
+    Subtotal: Number(producto.Subtotal.toFixed(2)),
+
+    // Mantener el precio promedio ponderado
+    // para conservar el subtotal original.
+    PrecioUnitario: producto.Cantidad > 0
+      ? Number(
+          (producto.Subtotal / producto.Cantidad).toFixed(2)
+        )
+      : producto.PrecioUnitario
+  }));
+}
+ 
+// =============================================
+// CAMBIAR LA CANTIDAD DE UN PRODUCTO EN EL FORMULARIO
+// =============================================
+function cambiarCantidadEdicion(idProducto, valor) {
+  const cantidad = valor === '' ? '' : Number(valor);
+ 
+  setFormularioEdicion((actual) => ({
+    ...actual,
+    productos: actual.productos.map((producto) =>
+      producto.IdProducto === idProducto
+        ? { ...producto, Cantidad: cantidad }
+        : producto
+    )
+  }));
+}
+ 
+// =============================================
+// CERRAR EL FORMULARIO SIN GUARDAR
+// =============================================
+function cancelarEdicionFactura() {
+  setEditandoFactura(false);
+  setError('');
+}
+ 
+// =============================================
+// GUARDAR LOS CAMBIOS DE LA FACTURA
+// =============================================
+async function guardarEdicionFactura(evento) {
+  evento.preventDefault();
+  setError('');
+  setMensaje('');
+ 
+  if (!comprobanteGenerado?.factura?.IdFactura) {
+    setError('No se encontró la factura que deseas editar.');
+    return;
+  }
+ 
+  if (!['Efectivo', 'Tarjeta', 'Transferencia'].includes(formularioEdicion.MetodoPago)) {
+    setError('Selecciona un método de pago válido.');
+    return;
+  }
+ 
+  if (!['Presencial', 'Pedido'].includes(formularioEdicion.CanalVenta)) {
+    setError('Selecciona un canal de venta válido.');
+    return;
+  }
+ 
+  for (const producto of formularioEdicion.productos) {
+    if (
+      !Number.isInteger(Number(producto.Cantidad)) ||
+      Number(producto.Cantidad) < 1
+    ) {
+      setError(`La cantidad de ${producto.NombreProducto} debe ser un entero mayor que cero.`);
+      return;
+    }
+  }
+ 
+  const token = localStorage.getItem('token');
+  if (!token) {
+    setError('Tu sesión ha expirado. Inicia sesión nuevamente.');
+    return;
+  }
+ 
+  try {
+    setGuardandoEdicion(true);
+ 
+    const idFactura = comprobanteGenerado.factura.IdFactura;
+ 
+    const respuesta = await fetch(
+      `${API}/facturas/${idFactura}/editar`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          MetodoPago: formularioEdicion.MetodoPago,
+          CanalVenta: formularioEdicion.CanalVenta,
+          productos: formularioEdicion.productos.map((producto) => ({
+            IdProducto: Number(producto.IdProducto),
+            Cantidad: Number(producto.Cantidad)
+          }))
+        })
+      }
+    );
+ 
+    const resultado = await respuesta.json().catch(() => ({}));
+ 
+    if (!respuesta.ok) {
+      throw new Error(
+        resultado.mensaje || 'No se pudo editar la factura.'
+      );
+    }
+ 
+    // Actualizar inmediatamente el comprobante que está en pantalla.
+    setComprobanteGenerado((actual) => ({
+  ...actual,
+
+  factura: {
+    ...actual.factura,
+    ...resultado.factura
+  },
+
+  venta: {
+    ...actual.venta,
+    ...resultado.venta
+  },
+
+  // Agrupar nuevamente los productos devueltos
+  // por el backend después de guardar.
+  productos: agruparProductosFactura(
+    resultado.productos || []
+  )
+}));
+ 
+    setEditandoFactura(false);
+    setError('');
+    // Este texto se muestra en el aviso de estado que ya existe en Ventas.jsx.
+    setMensaje('Factura editada correctamente.');
+ 
+    // Actualizar las existencias visibles en el módulo y en el resto de la aplicación.
+    await cargarProductos(false);
+ 
+    if (onVentaRegistrada) {
+      try {
+        await onVentaRegistrada();
+      } catch (actualizacionError) {
+        console.error(
+          'La factura se editó, pero no se pudo refrescar el resto de los datos visuales:',
+          actualizacionError
+        );
+      }
+    }
+ 
+  } catch (error) {
+    setError(error.message || 'Ocurrió un error al editar la factura.');
+  } finally {
+    setGuardandoEdicion(false);
+  }
+
+} // Aquí termina guardarEdicionFactura
+
+// =============================================
+// ANULAR FACTURA DESDE EL MÓDULO DE VENTAS
+// =============================================
+
+async function anularFactura() {
+
+  const factura = comprobanteGenerado?.factura;
+
+  if (!factura?.IdFactura) {
+    setError('No se encontró la factura que deseas anular.');
+    return;
+  }
+
+  if ((factura.EstadoFactura || 'Vigente') !== 'Vigente') {
+    setError('Esta factura ya se encuentra anulada.');
+    return;
+  }
+
+  // Solicitar motivo.
+  const motivo = window.prompt(
+    'Escribe el motivo por el cual deseas anular esta factura:'
+  );
+
+  if (motivo === null) return;
+
+  if (motivo.trim().length < 5 || motivo.trim().length > 250) {
+    setError(
+      'El motivo debe tener entre 5 y 250 caracteres.'
+    );
+    return;
+  }
+
+  // Confirmar anulación.
+  const confirmar = window.confirm(
+    `¿Estás seguro de anular la factura ${factura.NumeroFactura}?\n\n` +
+    'Esta acción anulará también la venta y devolverá los productos al inventario.\n\n' +
+    'Continúa únicamente si la venta no se concretó o los productos regresaron aptos para la venta.'
+  );
+
+  if (!confirmar) return;
+
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    setError('Tu sesión ha expirado. Inicia sesión nuevamente.');
+    return;
+  }
+
+  try {
+
+    setAnulandoFactura(true);
+    setError('');
+    setMensaje('');
+
+    const respuesta = await fetch(
+      `${API}/facturas/${factura.IdFactura}/anular`,
+      {
+        method: 'PATCH',
+
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+
+        body: JSON.stringify({
+          MotivoAnulacion: motivo.trim()
+        })
+      }
+    );
+
+    const resultado = await respuesta.json().catch(() => ({}));
+
+    if (!respuesta.ok) {
+      throw new Error(
+        resultado.mensaje || 'No se pudo anular la factura.'
+      );
+    }
+
+    // Actualizar el comprobante inmediatamente.
+    setComprobanteGenerado((actual) => ({
+      ...actual,
+
+      factura: {
+        ...actual.factura,
+        ...resultado.factura
+      },
+
+      venta: {
+        ...actual.venta,
+        ...resultado.venta
+      }
+    }));
+
+    setEditandoFactura(false);
+    setError('');
+
+    // Mostrar el mensaje de confirmación.
+    setMensaje('Factura anulada correctamente.');
+
+    // Actualizar las existencias de los productos.
+    await cargarProductos(false);
+
+    if (onVentaRegistrada) {
+      try {
+        await onVentaRegistrada();
+      } catch (actualizacionError) {
+        console.error(
+          'La factura se anuló, pero no se pudieron actualizar todos los datos visuales:',
+          actualizacionError
+        );
+      }
+    }
+
+  } catch (error) {
+
+    setError(
+      error.message || 'Ocurrió un error al anular la factura.'
+    );
+
+  } finally {
+
+    setAnulandoFactura(false);
+
+  }
+}
+
+// =============================================
+// INTERFAZ PRINCIPAL DEL MÓDULO VENTAS
+// =============================================
+
+ 
   return (
     <main className="ventas-page">
       <header className="ventas-header">
@@ -441,7 +837,14 @@ setMensaje(
 
   {/* Mostrar comprobante después de generarlo */}
   {comprobanteGenerado && (
-    <section className="ventas-comprobante">
+  <div className="ventas-comprobante-overlay">
+
+    <section
+      className="ventas-comprobante ventas-comprobante-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Comprobante de venta"
+    >
       <div className="ventas-comprobante-encabezado">
         <h2>PANADERÍA EMMANUEL</h2>
         <p>COMPROBANTE DE VENTA</p>
@@ -474,6 +877,36 @@ setMensaje(
           <strong>Canal de venta:</strong>{" "}
           {comprobanteGenerado.venta.CanalVenta}
         </p>
+
+        <p>
+  <strong>Estado de la factura:</strong>{' '}
+
+  <span
+    className={
+      comprobanteGenerado.factura.EstadoFactura === 'Anulada'
+        ? 'venta-factura-anulada'
+        : 'venta-factura-vigente'
+    }
+  >
+    {comprobanteGenerado.factura.EstadoFactura || 'Vigente'}
+  </span>
+</p>
+
+{comprobanteGenerado.factura.EstadoFactura === 'Anulada' && (
+  <>
+    <p>
+      <strong>Fecha de anulación:</strong>{' '}
+      {new Date(
+        comprobanteGenerado.factura.FechaAnulacion
+      ).toLocaleString('es-NI')}
+    </p>
+
+    <p>
+      <strong>Motivo de anulación:</strong>{' '}
+      {comprobanteGenerado.factura.MotivoAnulacion}
+    </p>
+  </>
+)}
       </div>
 
       <h3>Productos vendidos</h3>
@@ -517,6 +950,31 @@ setMensaje(
       
 
      <div className="ventas-comprobante-acciones ventas-no-imprimir">
+
+ {(comprobanteGenerado.factura.EstadoFactura || 'Vigente') === 'Vigente' && (
+    <>
+      <button
+        type="button"
+        className="ventas-editar-factura"
+        onClick={abrirEdicionFactura}
+        disabled={guardandoEdicion || anulandoFactura}
+      >
+        Editar factura
+      </button>
+
+      <button
+        type="button"
+        className="ventas-anular-factura"
+        onClick={anularFactura}
+        disabled={guardandoEdicion || anulandoFactura}
+      >
+        {anulandoFactura
+          ? 'Anulando factura...'
+          : 'Anular factura'}
+      </button>
+    </>
+  )}
+
   <button
     type="button"
     className="ventas-generar-factura"
@@ -533,11 +991,148 @@ setMensaje(
     Quitar
   </button>
 </div>
+{editandoFactura && (
+  <div className="ventas-modal-overlay ventas-no-imprimir">
+    <div
+      className="ventas-modal-edicion"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-editar-factura"
+    >
+      <form onSubmit={guardarEdicionFactura}>
+        <div className="ventas-modal-encabezado">
+          <div>
+            <h2 id="titulo-editar-factura">Editar factura</h2>
+            <p>
+              Factura {comprobanteGenerado.factura.NumeroFactura}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="ventas-modal-cerrar"
+            onClick={cancelarEdicionFactura}
+            aria-label="Cerrar formulario"
+            disabled={guardandoEdicion}
+          >
+            ×
+          </button>
+        </div>
+ 
+        <div className="ventas-modal-campos">
+          <label>
+            Método de pago
+            <select
+              value={formularioEdicion.MetodoPago}
+              onChange={(e) => setFormularioEdicion((actual) => ({
+                ...actual,
+                MetodoPago: e.target.value
+              }))}
+              disabled={guardandoEdicion}
+            >
+              <option value="Efectivo">Efectivo</option>
+              <option value="Tarjeta">Tarjeta</option>
+              <option value="Transferencia">Transferencia</option>
+            </select>
+          </label>
+ 
+          <label>
+            Canal de venta
+            <select
+              value={formularioEdicion.CanalVenta}
+              onChange={(e) => setFormularioEdicion((actual) => ({
+                ...actual,
+                CanalVenta: e.target.value
+              }))}
+              disabled={guardandoEdicion}
+            >
+              <option value="Presencial">Presencial</option>
+              <option value="Pedido">Pedido</option>
+            </select>
+          </label>
+        </div>
+ 
+        <h3 className="ventas-modal-subtitulo">Productos de la venta</h3>
+        <p className="ventas-modal-ayuda">
+          Corrige las cantidades. Los productos y sus precios unitarios originales se conservan.
+        </p>
+ 
+        <div className="ventas-modal-tabla-contenedor">
+          <table className="ventas-modal-tabla">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio unitario</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formularioEdicion.productos.map((producto) => (
+                <tr key={producto.IdProducto}>
+                  <td>{producto.NombreProducto}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={producto.Cantidad}
+                      onChange={(e) => cambiarCantidadEdicion(
+                        producto.IdProducto,
+                        e.target.value
+                      )}
+                      disabled={guardandoEdicion}
+                      required
+                    />
+                  </td>
+                  <td>
+                    C$ {Number(producto.PrecioUnitario).toFixed(2)}
+                  </td>
+                  <td>
+                    C$ {
+                      (
+                        Number(producto.Cantidad || 0) *
+                        Number(producto.PrecioUnitario)
+                      ).toFixed(2)
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+ 
+        <div className="ventas-modal-total">
+          <span>Nuevo total</span>
+          <strong>C$ {Number(totalEdicion).toFixed(2)}</strong>
+        </div>
+ 
+        <div className="ventas-modal-acciones">
+          <button
+            type="button"
+            className="ventas-modal-cancelar"
+            onClick={cancelarEdicionFactura}
+            disabled={guardandoEdicion}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="ventas-modal-guardar"
+            disabled={guardandoEdicion}
+          >
+            {guardandoEdicion ? 'Guardando cambios...' : 'Guardar cambios'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
     </section>
+     </div>
   )}
 
  
-
 
       <div className="ventas-columnas">
         <section className="ventas-panel">
