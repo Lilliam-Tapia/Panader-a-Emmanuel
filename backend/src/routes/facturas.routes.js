@@ -896,15 +896,31 @@ router.put('/:idFactura/editar', verificarToken, async (req, res) => {
       const cantidadNueva = Number(producto.Cantidad);
       const filasProducto = detalles.filter(d => Number(d.IdProducto) === idProducto);
 
-      const cantidadAnterior = filasProducto.reduce((suma, fila) => suma + Number(fila.Cantidad), 0);
-      const precioUnitario = Number(filasProducto[0].PrecioUnitario);
+     
+const cantidadAnterior = filasProducto.reduce(
+  (suma, fila) => suma + Number(fila.Cantidad),
+  0
+);
 
-      // En una misma venta, todos los lotes del producto deben conservar el mismo precio.
-      if (filasProducto.some(fila => Number(fila.PrecioUnitario) !== precioUnitario)) {
-        const error = new Error('No se puede editar porque el producto tiene precios unitarios distintos en sus detalles.');
-        error.status = 400;
-        throw error;
-      }
+// Obtener el subtotal original considerando todos los lotes.
+const subtotalAnterior = filasProducto.reduce(
+  (suma, fila) =>
+    suma + (Number(fila.Cantidad) * Number(fila.PrecioUnitario)),
+  0
+);
+
+if (cantidadAnterior <= 0) {
+  throw new Error(
+    'No se encontró una cantidad válida del producto en la venta.'
+  );
+}
+
+// Precio promedio ponderado de los detalles originales.
+// Esto permite editar productos distribuidos en varios lotes,
+// aunque tengan diferentes precios históricos.
+const precioUnitario = Number(
+  (subtotalAnterior / cantidadAnterior).toFixed(2)
+);
 
       const diferencia = cantidadNueva - cantidadAnterior;
 
@@ -1066,27 +1082,47 @@ router.put('/:idFactura/editar', verificarToken, async (req, res) => {
         }
       }
 
-      // El precio se toma de los detalles originales, nunca del formulario.
-      total += cantidadNueva * precioUnitario;
+      
     }
 
-    total = Math.round((total + Number.EPSILON) * 100) / 100;
+    
+// 4. Calcular el total real de los detalles después de la edición.
+const totalResultado = await new sql.Request(transaction)
+  .input('IdVenta', sql.Int, idVenta)
+  .query(`
+    SELECT
+      CAST(COALESCE(SUM(Subtotal), 0) AS DECIMAL(12,2)) AS Total
+    FROM dbo.DetalleVenta
+    WHERE IdVenta = @IdVenta;
+  `);
 
-    // 4. Guardar método de pago, canal y nuevo total en Ventas.
-    await new sql.Request(transaction)
-      .input('IdVenta', sql.Int, idVenta)
-      .input('MetodoPago', sql.VarChar(30), MetodoPago)
-      .input('CanalVenta', sql.VarChar(30), CanalVenta)
-      .input('Total', sql.Decimal(12, 2), total)
-      .query(`
-        UPDATE dbo.Ventas
-SET MetodoPago = @MetodoPago,
-    CanalVenta = @CanalVenta,
-    Total = @Total,
-    FechaUltimaEdicion = SYSDATETIME()
-WHERE IdVenta = @IdVenta
-  AND Estado = 'Completada';
-      `);
+// La variable total ya fue declarada anteriormente con let.
+total = Number(totalResultado.recordset[0].Total || 0);
+
+// 5. Guardar los datos actualizados de la venta.
+const ventaActualizada = await new sql.Request(transaction)
+  .input('IdVenta', sql.Int, idVenta)
+  .input('MetodoPago', sql.VarChar(30), MetodoPago)
+  .input('CanalVenta', sql.VarChar(30), CanalVenta)
+  .input('Total', sql.Decimal(12, 2), total)
+  .query(`
+    UPDATE dbo.Ventas
+    SET
+      MetodoPago = @MetodoPago,
+      CanalVenta = @CanalVenta,
+      Total = @Total,
+      FechaUltimaEdicion = SYSDATETIME()
+    OUTPUT INSERTED.IdVenta
+    WHERE IdVenta = @IdVenta
+      AND Estado = 'Completada';
+  `);
+
+if (ventaActualizada.recordset.length !== 1) {
+  throw new Error(
+    'No se pudo actualizar la información de la venta.'
+  );
+}
+
 
     // 5. Leer los detalles ya actualizados para devolverlos al frontend.
     const productosActualizados = await new sql.Request(transaction)
